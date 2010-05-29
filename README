@@ -1,0 +1,30 @@
+Initial support for Mafia game action resolution.
+Coded in python3.
+
+actions are in:
+actblock.py
+actcopy.py
+actfriend.py
+actinspect.py
+actkill.py
+actmakehidden.py
+actmessage.py
+actprotect.py
+actredirect.py
+acttrack.py
+actwatch.py
+
+base classes:
+action.py
+untrackable.py
+
+misc support for actions:
+player.py
+queue.py
+state.py
+
+module that pulls the prev stuff together:
+mafia.py
+
+test harness (just dumps stuff via print, doesn't use quickcheck):
+tester.py
