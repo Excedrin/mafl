@@ -2,17 +2,7 @@ Initial support for Mafia game action resolution.
 Coded in python3.
 
 actions are in:
-actblock.py
-actcopy.py
-actfriend.py
-actinspect.py
-actkill.py
-actmakehidden.py
-actmessage.py
-actprotect.py
-actredirect.py
-acttrack.py
-actwatch.py
+act*.py
 
 base classes:
 action.py
