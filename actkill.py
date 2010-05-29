@@ -9,7 +9,8 @@ class actkill(Action):
         self.name = "kill"
 
     def resolve(self, state):
-        state.target(self.actor, self.targets)
+        state.resolved(self)
+
         for target in self.targets:
             state.players[target].living = False
             print("kill %s resolved" % target)

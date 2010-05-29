@@ -9,7 +9,8 @@ class actmakehidden(Action):
         self.name = "makehidden"
 
     def resolve(self, state):
-        state.target(self.actor, self.targets)
+        state.resolved(self)
+
         for target in self.targets:
             # all actions targeting a hidden player fail
             newqueue = Queue()

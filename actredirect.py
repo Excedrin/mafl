@@ -10,7 +10,7 @@ class actredirect(Action):
         self.name = "redirect"
 
     def resolve(self, state):
-        state.target(self.actor, self.targets)
+        state.resolved(self)
 
         queue = state.queue
 

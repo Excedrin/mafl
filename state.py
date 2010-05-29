@@ -5,12 +5,16 @@ class State:
     def __init__(self):
         self.players = {}
         self.queue = Queue()
+        self.resqueue = Queue()
 
     def newplayer(self, player):
         self.players[player] = Player(player)
 
     def enqueue(self, action):
         self.queue.enqueue(action)
+
+    def resolved(self, action):
+        self.resqueue.enqueue(action)
 
     def resolve(self):
         print("resolve")
@@ -21,17 +25,11 @@ class State:
             self.queue = act.resolve(self)
         print("resolve done")
 
-
     def reset(self):
+        self.queue = Queue()
+        self.resqueue = Queue()
         for name,player in self.players.items():
             player.living = True
-            player.targets = []
-
-    def target(self, actor, targets):
-        self.players[actor].targets.extend(targets)
-    
-    def gettargets(self, actor):
-        return self.players[actor].targets
 
     def living(self):
         living = []

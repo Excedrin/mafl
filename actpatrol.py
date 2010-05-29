@@ -5,30 +5,30 @@ from untrackable import Untrackable
 
 from actmessage import actmessage
 
-class acttrack(Action):
+class actpatrol(Action):
     def __init__(self, actor, targets):
         self.priority = 90
         self.actor = actor
         self.targets = targets
-        self.name = "track"
+        self.name = "patrol"
 
     def resolve(self, state):
         state.resolved(self)
 
         for target in self.targets:
             acted = False
-            targets = []
+            actors = []
             for act in state.queue:
-                if not isinstance(act, Untrackable) and act.actor == target:
+                if not isinstance(act, Untrackable) and target in act.targets:
                     print("found lower priority:",act)
-                    targets.extend(act.targets)
+                    actors.extend(act.actor)
             if not acted:
                 for act in state.resqueue:
-                    if not isinstance(act, Untrackable) and act.actor == target:
+                    if not isinstance(act, Untrackable) and target in act.targets:
                         print("found resolved action:",act)
-                        targets.extend(act.targets)
+                        actors.extend(act.actor)
 
-            msg = ["%s targeted %s" % (target, targets) ]
+            msg = ["%s was targeted by %s" % (target, actors) ]
             state.queue.enqueue(actmessage(self.actor, [self.actor], msg))
 
         return state.queue

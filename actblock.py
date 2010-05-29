@@ -9,10 +9,11 @@ class actblock(Action):
         self.name = "block"
 
     def resolve(self, state):
-        state.target(self.actor, self.targets)
-
         newqueue = Queue()
         for act in state.queue:
             if not act.actor in self.targets:
                 newqueue.enqueue(act)
+            # blocked actions don't go into resqueue
+
+        state.resolved(self)
         return newqueue

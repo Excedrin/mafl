@@ -10,6 +10,9 @@ from actblock import *
 from actfriend import *
 from actwatch import *
 from acttrack import *
+from actpatrol import *
+from actguard import *
+from actreflex import *
 
 from queue import *
 from player import *

@@ -10,7 +10,7 @@ class actcopy(Action):
         self.name = "copy"
 
     def resolve(self, state):
-        state.target(self.actor, self.targets)
+        state.resolved(self)
         queue = state.queue
 
         source = self.targets[0]

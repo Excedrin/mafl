@@ -2,12 +2,12 @@ from queue import *
 from action import Action
 from actkill import *
 
-class actprotect(Action):
+class actguard(Action):
     def __init__(self, actor, targets):
-        self.priority = 50
+        self.priority = 40
         self.actor = actor
         self.targets = targets
-        self.name = "protect"
+        self.name = "guard"
 
     def resolve(self, state):
         state.resolved(self)
@@ -22,7 +22,9 @@ class actprotect(Action):
             if killfound or (not (isinstance(act, actkill) and target in act.targets)):
                 newqueue.enqueue(act)
             else:
+                # bodyguard kills the killer
+                newqueue.enqueue(actkill(self.actor, act.actor))
+                # bodyguard dies instead of target
+                newqueue.enqueue(actkill(act.actor, self.actor))
                 killfound = True
-                print("kill %s canceled by protect" % act.targets)
-                state.resolved(act)
         return newqueue

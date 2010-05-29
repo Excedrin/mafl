@@ -12,7 +12,7 @@ class actinspect(Action):
         self.name = "inspect"
 
     def resolve(self, state):
-        state.target(self.actor, self.targets)
+        state.resolved(self)
 
         for target in self.targets:
             state.queue.enqueue(actmessage(self.actor, [self.actor], ["%s is %s" % (target, state.players[target].align)] ))

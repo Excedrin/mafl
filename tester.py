@@ -1,9 +1,6 @@
 #!/usr/bin/python3
 import mafia
 
-#['Action', 'Player', 'Queue', 'QueueIter', 'State', '__builtins__', '__doc__', '__file__', '__name__', '__package__', 'actcopy', 'actinspect', 'actkill', 'actmakehidden', 'actmessage', 'actprotect', 'copy', 'heapq']
-#>>>
-
 def results(g):
     g.resolve()
     g.living()
@@ -54,4 +51,23 @@ results(g)
 
 g.enqueue(mafia.acttrack("a", ["b"]))
 g.enqueue(mafia.acttrack("b", ["a"]))
+results(g)
+
+g.enqueue(mafia.actprotect("d", ["c"]))
+g.enqueue(mafia.actkill("b", ["c"]))
+g.enqueue(mafia.acttrack("a", ["b","d"]))
+g.enqueue(mafia.actpatrol("c", ["c"]))
+results(g)
+
+g.enqueue(mafia.actprotect("d", ["c"]))
+g.enqueue(mafia.actkill("b", ["c"]))
+g.enqueue(mafia.actkill("b", ["c"]))
+results(g)
+
+g.enqueue(mafia.actguard("d", ["c"]))
+g.enqueue(mafia.actkill("b", ["c"]))
+results(g)
+
+g.enqueue(mafia.actreflex("d", ["d"], [mafia.actkill("d", [])] ))
+g.enqueue(mafia.actinspect("b", ["d"]))
 results(g)
