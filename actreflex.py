@@ -12,14 +12,11 @@ class actreflex(Action):
     def resolve(self, state):
         state.resolved(self)
 
-        queue = state.queue
-
         for target in self.targets:
-            newqueue = Queue()
-            for act in queue:
+            for act in state.queue:
                 if target in act.targets:
                     for reflexact in self.args:
                         reflexact.actor = target
                         reflexact.targets = [act.actor]
-                        newqueue.enqueue(reflexact)
-        return newqueue
+                        state.queue.enqueue(reflexact)
+        return state.queue

@@ -12,13 +12,11 @@ class actprotect(Action):
     def resolve(self, state):
         state.resolved(self)
 
-        queue = state.queue
-
         target = self.targets[0]
 
         killfound = False
         newqueue = Queue()
-        for act in queue:
+        for act in state.queue:
             if killfound or (not (isinstance(act, actkill) and target in act.targets)):
                 newqueue.enqueue(act)
             else:

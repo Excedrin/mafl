@@ -12,13 +12,11 @@ class actredirect(Action):
     def resolve(self, state):
         state.resolved(self)
 
-        queue = state.queue
-
         source = self.targets[0]
         dest = self.targets[1]
 
         newqueue = Queue()
-        for act in queue:
+        for act in state.queue:
             if act.actor == source:
                 newact = copy.deepcopy(act)
                 newact.targets[0] = dest
