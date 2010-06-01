@@ -36,14 +36,17 @@ class State:
 
     def living(self):
         living = []
-        dead = []
         for name,player in self.players.items():
             if player.living:
                 living.append(player.name)
-            else:
+        return living
+
+    def dead(self):
+        dead = []
+        for name,player in self.players.items():
+            if not player.living:
                 dead.append(player.name)
-        print("living: %s" % living)
-        print("dead: %s" % dead)
+        return dead
 
     def lookup(self, player):
         if player in self.bus:

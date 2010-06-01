@@ -3,7 +3,8 @@ import mafia
 
 def results(g):
     g.resolve()
-    g.living()
+    print("living:",g.living())
+    print("dead:",g.dead())
     print()
     g.reset()
 
