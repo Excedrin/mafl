@@ -15,11 +15,9 @@ class actinspect(Action):
         state.resolved(self)
 
         for target in self.targets:
-            targetname = target
-            if state.players[target].bussed:
-                targetname = state.players[target].bussed
+            align = state.players[target].align
 
-            msg = "%s is %s" % (targetname, state.players[target].align)
+            msg = "%s is %s" % (target, align)
             state.queue.enqueue(actmessage(self.actor, [self.actor], [msg]))
 
         return state.queue

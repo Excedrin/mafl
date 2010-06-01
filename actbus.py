@@ -12,7 +12,7 @@ import copy
 
 class actbus(Action):
     def __init__(self, actor, targets):
-        self.priority = 13
+        self.priority = 12
         self.actor = actor
         self.targets = targets
         self.name = "bus"
@@ -23,24 +23,14 @@ class actbus(Action):
         source = self.targets[0]
         dest = self.targets[1]
 
-        state.players[source].bussed = dest
-        state.players[dest].bussed = source
+        if source in state.bus:
+            state.bus[source].append(dest)
+        else:
+            state.bus[source] = [dest]
+        if dest in state.bus:
+            state.bus[dest].append(source)
+        else:
+            state.bus[dest] = [source]
+        print("state.bus",state.bus)
 
-        newqueue = Queue()
-        for act in state.queue:
-            newtargets = []
-            for target in act.targets:
-                if target == source:
-                    newtargets.append(dest)
-                elif target == dest:
-                    newtargets.append(source)
-                else:
-                    newtargets.append(target)
-            if newtargets != act.targets:
-                newact = copy.deepcopy(act)
-                newact.targets = newtargets
-                print("newact:",newact)
-                newqueue.enqueue(newact)
-            else:
-                newqueue.enqueue(act)
-        return newqueue
+        return state.queue

@@ -32,11 +32,7 @@ class actwatch(Action):
 #            result = "didn't use an ability"
             result = "used an ability" if acted else "didn't use an ability"
 
-            targetname = target
-            if state.players[target].bussed:
-                targetname = state.players[target].bussed
-
-            msg = "%s %s" % (targetname, result)
+            msg = "%s %s" % (target, result)
 
             state.queue.enqueue(actmessage(self.actor, [self.actor], [msg]))
 

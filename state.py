@@ -1,11 +1,13 @@
 from queue import *
 from player import *
+from random import choice
 
 class State:
     def __init__(self):
         self.players = {}
         self.queue = Queue()
         self.resqueue = Queue()
+        self.bus = {}
 
     def newplayer(self, player):
         self.players[player] = Player(player)
@@ -30,7 +32,7 @@ class State:
         self.resqueue = Queue()
         for name,player in self.players.items():
             player.living = True
-            player.bussed = None
+        self.bus = {}
 
     def living(self):
         living = []
@@ -42,3 +44,12 @@ class State:
                 dead.append(player.name)
         print("living: %s" % living)
         print("dead: %s" % dead)
+
+    def lookup(self, player):
+        if player in self.bus:
+            return choice(self.bus[player])
+        else:
+            return player
+
+    def fix(self, targets):
+        return map(lambda x: self.lookup(x), targets)

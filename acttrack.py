@@ -28,11 +28,7 @@ class acttrack(Action):
                         print("found resolved action:",act)
                         targets.extend(act.targets)
 
-            targetname = target
-            if state.players[target].bussed:
-                targetname = state.players[target].bussed
-
-            msg = "%s targeted %s" % (targetname, targets)
+            msg = "%s targeted %s" % (target, targets)
             state.queue.enqueue(actmessage(self.actor, [self.actor], [msg]))
 
         return state.queue

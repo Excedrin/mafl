@@ -13,6 +13,11 @@ g.newplayer("b")
 g.newplayer("c")
 g.newplayer("d")
 
+g.players["a"].align = "a"
+g.players["b"].align = "b"
+g.players["c"].align = "c"
+g.players["d"].align = "d"
+
 g.enqueue(mafia.actinspect("a", ["b"]))
 results(g)
 
@@ -85,4 +90,22 @@ results(g)
 g.enqueue(mafia.actbus("a", ["b", "d"]))
 g.enqueue(mafia.actinspect("c", ["d"]))
 g.enqueue(mafia.actkill("b", ["d"]))
+results(g)
+
+g.enqueue(mafia.actbus("a", ["d", "c"]))
+#g.enqueue(mafia.actbus("a", ["b", "d"]))
+g.enqueue(mafia.actinspect("c", ["d"]))
+#g.enqueue(mafia.actkill("b", ["d"]))
+results(g)
+
+g.enqueue(mafia.actbus("a", ["b", "d"]))
+g.enqueue(mafia.actbus("a", ["d", "c"]))
+g.enqueue(mafia.actinspect("c", ["d"]))
+#g.enqueue(mafia.actkill("b", ["d"]))
+results(g)
+
+g.enqueue(mafia.actbus("a", ["d", "c"]))
+g.enqueue(mafia.actbus("a", ["b", "d"]))
+g.enqueue(mafia.actinspect("c", ["d"]))
+#g.enqueue(mafia.actkill("b", ["d"]))
 results(g)
