@@ -16,20 +16,13 @@ class actwatch(Action):
         state.resolved(self)
 
         for target in self.targets:
+            realtarget = state.lookup(target).name
             acted = False
-            for act in state.queue:
-                if not isinstance(act, Untrackable) and act.actor == target:
-                    print("found unresolved lower priority action:", act)
+            for act in state.queue + state.resqueue:
+                if not isinstance(act, Untrackable) and act.actor == realtarget:
                     acted = True
                     break
-            if not acted:
-                for act in state.resqueue:
-                    if not isinstance(act, Untrackable) and act.actor == target:
-                        print("found resolved higher priority action:", act)
-                        acted = True
-                        break
 
-#            result = "didn't use an ability"
             result = "used an ability" if acted else "didn't use an ability"
 
             msg = "%s %s" % (target, result)

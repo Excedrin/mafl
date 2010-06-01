@@ -12,6 +12,8 @@ class Queue:
         return bool(self.heap)
     def __str__(self):
         return ("queue with %s items" % len(self.heap))
+    def __add__(self, other):
+        return heapq.merge(self.heap, other.heap)
     def pop(self):
         return heapq.heappop(self.heap)
 

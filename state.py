@@ -50,9 +50,9 @@ class State:
 
     def lookup(self, player):
         if player in self.bus:
-            return choice(self.bus[player])
+            return self.players[choice(self.bus[player])]
         else:
-            return player
+            return self.players[player]
 
     def fix(self, targets):
-        return map(lambda x: self.lookup(x), targets)
+        return map(lambda x: self.lookup(x).name, targets)

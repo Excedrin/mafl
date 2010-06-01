@@ -16,17 +16,12 @@ class acttrack(Action):
         state.resolved(self)
 
         for target in self.targets:
+            realtarget = state.lookup(target).name
             acted = False
             targets = []
-            for act in state.queue:
-                if not isinstance(act, Untrackable) and act.actor == target:
-                    print("found lower priority:",act)
+            for act in state.queue + state.resqueue:
+                if not isinstance(act, Untrackable) and act.actor == realtarget:
                     targets.extend(act.targets)
-            if not acted:
-                for act in state.resqueue:
-                    if not isinstance(act, Untrackable) and act.actor == target:
-                        print("found resolved action:",act)
-                        targets.extend(act.targets)
 
             msg = "%s targeted %s" % (target, targets)
             state.queue.enqueue(actmessage(self.actor, [self.actor], [msg]))
