@@ -4,3 +4,4 @@ class Player:
         self.name = name
         self.align = "unknown"
         self.living = True
+        self.bussed = None

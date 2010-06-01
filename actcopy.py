@@ -4,7 +4,7 @@ import copy
 
 class actcopy(Action):
     def __init__(self, actor, targets):
-        self.priority = 11
+        self.priority = 10
         self.actor = actor
         self.targets = targets
         self.name = "copy"

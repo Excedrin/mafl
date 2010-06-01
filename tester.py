@@ -81,3 +81,8 @@ g.enqueue(mafia.actimmuneelse("d", ["d"], [mafia.actkill] ))
 g.enqueue(mafia.actkill("b", ["d"]))
 g.enqueue(mafia.actinspect("c", ["d"]))
 results(g)
+
+g.enqueue(mafia.actbus("a", ["b", "d"]))
+g.enqueue(mafia.actinspect("c", ["d"]))
+g.enqueue(mafia.actkill("b", ["d"]))
+results(g)

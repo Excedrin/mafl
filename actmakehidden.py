@@ -3,7 +3,7 @@ from action import Action
 
 class actmakehidden(Action):
     def __init__(self, actor, targets):
-        self.priority = 8
+        self.priority = 11
         self.actor = actor
         self.targets = targets
         self.name = "makehidden"

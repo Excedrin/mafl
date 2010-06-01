@@ -30,6 +30,7 @@ class State:
         self.resqueue = Queue()
         for name,player in self.players.items():
             player.living = True
+            player.bussed = None
 
     def living(self):
         living = []

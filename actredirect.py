@@ -4,7 +4,7 @@ import copy
 
 class actredirect(Action):
     def __init__(self, actor, targets):
-        self.priority = 13
+        self.priority = 15
         self.actor = actor
         self.targets = targets
         self.name = "redirect"
