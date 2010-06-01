@@ -3,8 +3,8 @@ import mafia
 
 def results(g):
     g.resolve()
-    print("living:",g.living())
-    print("dead:",g.dead())
+    print("living:", list(map(lambda x: x.name, g.living())))
+    print("dead:", list(map(lambda x: x.name, g.dead())))
     print()
     g.reset()
 
@@ -14,10 +14,18 @@ g.newplayer("b")
 g.newplayer("c")
 g.newplayer("d")
 
-g.players["a"].align = "a"
-g.players["b"].align = "b"
-g.players["c"].align = "c"
-g.players["d"].align = "d"
+#g.players["a"].align = "a"
+#g.players["b"].align = "b"
+#g.players["c"].align = "c"
+#g.players["d"].align = "d"
+
+town = mafia.Ftown()
+maf = mafia.Fmaf()
+survivor = mafia.Fsurvivor()
+g.players["a"].faction = maf
+g.players["b"].faction = town
+g.players["c"].faction = town
+g.players["d"].faction = survivor
 
 g.enqueue(mafia.actinspect("a", ["b"]))
 results(g)
@@ -137,3 +145,53 @@ g.enqueue(mafia.actbus("a", ["d", "b"]))
 g.enqueue(mafia.actpatrol("c", ["d"]))
 g.enqueue(mafia.actinspect("d", ["c"]))
 results(g)
+
+##
+
+g.enqueue(mafia.actkill("b", ["a"]))
+g.resolve()
+
+winners = []
+losers = []
+for name,player in g.players.items():
+    if player.faction.win(g, player):
+        winners.append(name)
+    else:
+        losers.append(name)
+
+if winners:
+    print("winners:",winners)
+    print("losers:",losers)
+g.reset()
+
+g.enqueue(mafia.actkill("b", ["c","d"]))
+g.resolve()
+
+winners = []
+losers = []
+for name,player in g.players.items():
+    if player.faction.win(g, player):
+        winners.append(name)
+    else:
+        losers.append(name)
+
+if winners:
+    print("winners:",winners)
+    print("losers:",losers)
+g.reset()
+
+g.enqueue(mafia.actkill("a", ["b","c"]))
+g.resolve()
+
+winners = []
+losers = []
+for name,player in g.players.items():
+    if player.faction.win(g, player):
+        winners.append(name)
+    else:
+        losers.append(name)
+
+if winners:
+    print("winners:",winners)
+    print("losers:",losers)
+g.reset()

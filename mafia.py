@@ -21,3 +21,7 @@ from actimmuneelse import *
 from queue import *
 from player import *
 from state import *
+
+from fmaf import Fmaf
+from ftown import Ftown
+from fsurvivor import Fsurvivor

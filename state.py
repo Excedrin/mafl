@@ -38,14 +38,14 @@ class State:
         living = []
         for name,player in self.players.items():
             if player.living:
-                living.append(player.name)
+                living.append(player)
         return living
 
     def dead(self):
         dead = []
         for name,player in self.players.items():
             if not player.living:
-                dead.append(player.name)
+                dead.append(player)
         return dead
 
     def lookup(self, player):

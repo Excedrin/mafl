@@ -15,7 +15,7 @@ class actinspect(Action):
         state.resolved(self)
 
         for target in self.targets:
-            align = state.lookup(target).align
+            align = state.lookup(target).faction.name
 
             msg = "%s is %s" % (target, align)
             state.queue.enqueue(actmessage(self.actor, [self.actor], [msg]))
