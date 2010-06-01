@@ -12,8 +12,8 @@ class actredirect(Action):
     def resolve(self, state):
         state.resolved(self)
 
-        source = self.targets[0]
-        dest = self.targets[1]
+        source = state.lookup(self.targets[0]).name
+        dest = state.lookup(self.targets[1]).name
 
         newqueue = Queue()
         for act in state.queue:

@@ -14,6 +14,8 @@ class actfriend(Action):
     def resolve(self, state):
         state.resolved(self)
 
-        state.queue.enqueue(actmessage(self.actor, self.targets, ["%s is %s" % (self.actor, state.players[self.actor].align)] ))
+        msg = "%s is %s" % (self.actor, state.players[self.actor].align)
+        for target in state.fix(self.targets):
+            state.queue.enqueue(actmessage(self.actor, target, [msg]))
 
         return state.queue

@@ -12,7 +12,8 @@ class actkill(Action):
         state.resolved(self)
 
         for target in self.targets:
-            state.players[target].living = False
-            print("kill %s resolved" % target)
+            player = state.lookup(target)
+            player.living = False
+            print("kill %s resolved (%s killed by %s)" % (target, player.name, self.actor))
 
         return state.queue
