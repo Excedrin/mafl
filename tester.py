@@ -5,6 +5,15 @@ def results(g):
     g.resolve()
     print("living:", list(map(lambda x: x.name, g.living())))
     print("dead:", list(map(lambda x: x.name, g.dead())))
+
+    win,lose,draw = g.checkwin()
+    if win or draw:
+        if draw:
+            print("game over, draw:", draw)
+        else:
+            print("game over, winners:", win)
+            print("losers:", lose)
+
     print()
     g.reset()
 
@@ -13,11 +22,6 @@ g.newplayer("a")
 g.newplayer("b")
 g.newplayer("c")
 g.newplayer("d")
-
-#g.players["a"].align = "a"
-#g.players["b"].align = "b"
-#g.players["c"].align = "c"
-#g.players["d"].align = "d"
 
 town = mafia.Ftown()
 maf = mafia.Fmaf()
@@ -146,52 +150,19 @@ g.enqueue(mafia.actpatrol("c", ["d"]))
 g.enqueue(mafia.actinspect("d", ["c"]))
 results(g)
 
-##
+## win condition test
 
 g.enqueue(mafia.actkill("b", ["a"]))
 g.resolve()
 
-winners = []
-losers = []
-for name,player in g.players.items():
-    if player.faction.win(g, player):
-        winners.append(name)
-    else:
-        losers.append(name)
-
-if winners:
-    print("winners:",winners)
-    print("losers:",losers)
-g.reset()
+results(g)
 
 g.enqueue(mafia.actkill("b", ["c","d"]))
 g.resolve()
 
-winners = []
-losers = []
-for name,player in g.players.items():
-    if player.faction.win(g, player):
-        winners.append(name)
-    else:
-        losers.append(name)
-
-if winners:
-    print("winners:",winners)
-    print("losers:",losers)
-g.reset()
+results(g)
 
 g.enqueue(mafia.actkill("a", ["b","c"]))
 g.resolve()
 
-winners = []
-losers = []
-for name,player in g.players.items():
-    if player.faction.win(g, player):
-        winners.append(name)
-    else:
-        losers.append(name)
-
-if winners:
-    print("winners:",winners)
-    print("losers:",losers)
-g.reset()
+results(g)

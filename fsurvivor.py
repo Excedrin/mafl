@@ -9,8 +9,6 @@ class Fsurvivor:
     def win(self, state, player):
         if player.living:
             for p in state.living():
-                if p == player or p.faction == self:
-                    next
-                if p.faction.win(state, p):
+                if p != player and p.faction.win(state, p):
                     return True
         return False

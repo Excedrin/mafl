@@ -56,3 +56,19 @@ class State:
 
     def fix(self, targets):
         return map(lambda x: self.lookup(x).name, targets)
+
+    def checkwin(self):
+        winners = []
+        losers = []
+        draw = []
+        for name,player in self.players.items():
+            draw.append(name)
+            if player.faction.win(self, player):
+                winners.append(name)
+            else:
+                losers.append(name)
+        if not self.living():
+            return ((), (), draw)
+        if winners:
+            return (winners, losers, ())
+        return ((), (), ())
