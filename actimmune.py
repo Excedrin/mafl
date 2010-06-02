@@ -18,7 +18,7 @@ class actimmune(Action):
                 if target in act.targets:
                     for immuneact in self.args:
                         if isinstance(act, immuneact):
-                            print("%s is immune to %s" %(target, act))
+#                            print("%s is immune to %s" %(target, act))
                             state.resqueue.enqueue(act)
                         else:
                             newqueue.enqueue(act)

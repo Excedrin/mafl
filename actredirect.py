@@ -20,7 +20,7 @@ class actredirect(Action):
             if act.actor == source:
                 newact = copy.deepcopy(act)
                 newact.targets[0] = dest
-                print("newact:",newact)
+#                print("newact:",newact)
                 newqueue.enqueue(newact)
             else:
                 newqueue.enqueue(act)

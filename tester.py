@@ -31,19 +31,16 @@ g.players["b"].faction = town
 g.players["c"].faction = town
 g.players["d"].faction = survivor
 
-g.enqueue(mafia.actinspect("a", ["b"]))
+g.enqueue(mafia.actkill("a", ["b"]))
+g.enqueue(mafia.actinspect("b", ["a"]))
+g.enqueue(mafia.acteavesdrop("c", ["b"]))
 results(g)
 
+g.enqueue(mafia.actprotect("c", ["a"]))
 g.enqueue(mafia.actkill("b", ["a"]))
 g.enqueue(mafia.actinspect("a", ["b"]))
 results(g)
 
-g.enqueue(mafia.actprotect("c", ["a"]))
-g.enqueue(mafia.actkill("b", ["a"]))
-g.enqueue(mafia.actinspect("a", ["b"]))
-results(g)
-
-g.enqueue(mafia.actprotect("c", ["a"]))
 g.enqueue(mafia.actcopy("d", ["b", "b"]))
 g.enqueue(mafia.actkill("b", ["a"]))
 g.enqueue(mafia.actinspect("a", ["b"]))
@@ -165,4 +162,9 @@ results(g)
 g.enqueue(mafia.actkill("a", ["b","c"]))
 g.resolve()
 
+results(g)
+
+g.enqueue(mafia.actkill("a", ["b"]))
+g.enqueue(mafia.actguard("c", ["b"]))
+g.resolve()
 results(g)

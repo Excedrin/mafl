@@ -14,15 +14,15 @@ class actcopy(Action):
 
         source = self.targets[0]
         dest = self.targets[1]
-        print("copy src: %s dst: %s" %(source,dest))
+#        print("copy src: %s dst: %s" %(source,dest))
 
         newqueue = Queue()
         for act in state.queue:
             if act.actor == source:
                 newact = copy.deepcopy(act)
-                newact.actor = self.actor
+                newact.actor = source
                 newact.targets[0] = dest
-                print("newact:",newact)
+#                print("newact:",newact)
                 newqueue.enqueue(newact)
             newqueue.enqueue(act)
         return newqueue

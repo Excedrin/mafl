@@ -19,13 +19,13 @@ class State:
         self.resqueue.enqueue(action)
 
     def resolve(self):
-        print("resolve")
+#        print("resolve")
         while self.queue:
-            print("resolve q:", self.queue)
+#            print("resolve q:", self.queue)
             act = self.queue.pop()
-            print("resolve act:", act)
+#            print("resolve act:", act)
             self.queue = act.resolve(self)
-        print("resolve done")
+#        print("resolve done")
 
     def reset(self):
         self.queue = Queue()

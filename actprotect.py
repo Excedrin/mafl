@@ -20,6 +20,6 @@ class actprotect(Action):
                     newqueue.enqueue(act)
                 else:
                     killfound = True
-                    print("kill %s canceled by protect" % act.targets)
+#                    print("kill %s canceled by protect" % act.targets)
                     state.resolved(act)
         return newqueue

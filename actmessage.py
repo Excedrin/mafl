@@ -10,8 +10,8 @@ class actmessage(Action, Untrackable):
         self.name = "message"
 
     def resolve(self, state):
-        if state.players[self.actor].living:
-            for target in self.targets:
+        for target in self.targets:
+            if state.players[target].living:
                 print("message from %s to %s: %s" % (self.actor, target, self.args))
 
         return state.queue
