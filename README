@@ -1,17 +1,22 @@
-Initial support for Mafia game action resolution.
+Full, working* Mafia bot.
 Coded in python3.
 
-actions are in:
-act*.py
+IRC bot stuff:
+botloader.py
+bot.py
+cmd_*.py
 
-base classes:
-action.py
-untrackable.py
+actions are in:
+actions.py
+
+core game state:
+state.py
 
 misc support for actions:
 player.py
-queue.py
-state.py
+mafqueue.py
+actor.py
+faction.py
 
 module that pulls the prev stuff together:
 mafia.py
