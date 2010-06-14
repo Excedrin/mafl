@@ -123,7 +123,7 @@ class State:
         self.newphase = phase.Starting
 
     def playernames(self):
-        return list(self.names.keys())
+        return list(self.names.values())
 
     def living(self):
         living = []
