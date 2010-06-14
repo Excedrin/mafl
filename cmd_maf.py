@@ -22,7 +22,7 @@ def fuzzy(state, tryname):
 def cleanargs(state, args):
     return [fuzzy(state, x) for x in args]
 
-def rungame(bot, state):
+def rungame(bot, to, who, state):
     result = state.run()
     for target, l in result:
         print("res:",target,l)
@@ -37,7 +37,7 @@ def tick(bot):
     state = bot.get('maf')
     if state:
         state.tick()
-        rungame(bot, state)
+        rungame(bot, state.channel, state.channel, state)
     bot.store('maf', state)
 
 def run(bot, command, to, who, args):
@@ -73,7 +73,8 @@ def run(bot, command, to, who, args):
         state.votecount()
 
     elif command == "%replace":
-        state.replace(args[0], args[1])
+        if len(args) == 2:
+            state.replace(args[0], args[1])
 
     elif to and to[0] == "#" and command == "%start":
         state.start(to)
@@ -114,6 +115,6 @@ def run(bot, command, to, who, args):
                 print("exception trying to handle player ability: %s\n%s\n" %(ability, e))
                 traceback.print_exc()
 
-    rungame(bot, state)
+    rungame(bot, to, who, state)
 
     bot.store('maf', state)

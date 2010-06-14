@@ -51,6 +51,11 @@ class BusDriver(Townie):
         Townie.setrole(self, actor)
         actor.addability(Ability(Bus, Night))
 
+class Roleblocker(Townie):
+    def setrole(self, actor):
+        Townie.setrole(self, actor)
+        actor.addability(Ability(Block, Night))
+
 class Redirecter(Townie):
     def setrole(self, actor):
         Townie.setrole(self, actor)

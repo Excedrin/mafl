@@ -372,10 +372,12 @@ class State:
 
     def replace(self, p1, p2):
         slot = self.slotbyname(p1)
-        if slot:
+        if slot != None:
             player = self.playerbyslot(slot)
             player.name = p2
             self.slot[p2] = slot
             del self.slot[p1]
             self.name[slot] = p2
             self.message(None, "replaced %s with %s"%(p1,p2))
+        else:
+            self.message(None, "didn't find %s"%p1)
