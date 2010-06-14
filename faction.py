@@ -1,8 +1,6 @@
 from actor import Actor
 
-import ability
-import actions 
-import phase
+import mafl
 
 class Faction(Actor):
     def __init__(self, number=1):
@@ -11,14 +9,14 @@ class Faction(Actor):
     def __str__(self):
         return "%s%d" %(self.__class__.name, self.instance)
 
-class sk(Faction):
+class Sk(Faction):
     name = "sk"
     def win(self, state, player):
         alive = state.living()
         members = list(filter(lambda x: x.faction==self, alive))
         return len(members) >= (len(alive) / 2)
 
-class survivor(Faction):
+class Survivor(Faction):
     name = "survivor"
     def win(self, state, player):
         if player.living:
@@ -27,18 +25,18 @@ class survivor(Faction):
                     return True
         return False
 
-class town(Faction):
+class Town(Faction):
     name = "town"
     def win(self, state, player):
         alive = state.living()
-        members = list(filter(lambda x: x.faction==self or isinstance(x.faction, survivor), alive))
+        members = list(filter(lambda x: x.faction==self or isinstance(x.faction, Survivor), alive))
         return len(members) == len(alive)
 
-class mafia(Faction):
+class Mafia(Faction):
     name = "mafia"
     def __init__(self, number=1):
         Faction.__init__(self)
-        self.addability(ability.Ability(actions.Kill, phase.Night))
+        self.addability(mafl.ability.Ability(mafl.actions.Kill, mafl.phase.Night))
     def win(self, state, player):
         alive = state.living()
         members = list(filter(lambda x: x.faction==self, alive))

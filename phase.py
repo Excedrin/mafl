@@ -22,5 +22,10 @@ class Starting(Phase):
     instant = True
     nextphase = Day
 
+class Done(Phase):
+    name = "done"
+    instant = True
+    nextphase = Starting
+
 class Any(Day, Night):
     pass

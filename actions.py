@@ -43,7 +43,10 @@ class Vote(Action, Untrackable):
         state.resolved(self)
 
         player = state.playerbyslot(self.actor)
-        maxvotes = getattr(player, 'maxvotes', 1)
+
+        maxvotes = 1
+        if self.args:
+            maxvotes = self.args[0]
         state.vote(self.actor, self.targets[0:maxvotes])
 
         return state.queue

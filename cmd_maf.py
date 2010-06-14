@@ -1,4 +1,5 @@
-import mafia
+import state as game
+
 import traceback
 from difflib import SequenceMatcher
 
@@ -28,13 +29,13 @@ def run(bot, command, to, who, args):
         state = None
 
     if state == None:
-        state = mafia.State()
+        state = game.State()
 
     if command == "%join":
         state.newplayer(who, None)
 
     elif command == "%role":
-        bot.privmsg(who, role)
+        state.rolepm(who)
 
     elif command == "%force":
         if len(args) >= 2:

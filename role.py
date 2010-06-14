@@ -31,7 +31,52 @@ class Cop(Townie):
         Townie.setrole(self, actor)
         actor.addability(Ability(Inspect, Night))
 
+class DayCop(Townie):
+    def setrole(self, actor):
+        Townie.setrole(self, actor)
+        actor.addability(Ability(Inspect, Day))
+
+class OneShotCop(Townie):
+    def setrole(self, actor):
+        Townie.setrole(self, actor)
+        actor.addability(Ability(Inspect, Night, uses=1))
+
 class Doctor(Townie):
     def setrole(self, actor):
         Townie.setrole(self, actor)
         actor.addability(Ability(Protect, Night))
+
+class BusDriver(Townie):
+    def setrole(self, actor):
+        Townie.setrole(self, actor)
+        actor.addability(Ability(Bus, Night))
+
+class Redirecter(Townie):
+    def setrole(self, actor):
+        Townie.setrole(self, actor)
+        actor.addability(Ability(Redirect, Night))
+
+class Tracker(Townie):
+    def setrole(self, actor):
+        Townie.setrole(self, actor)
+        actor.addability(Ability(Track, Night))
+
+class Watcher(Townie):
+    def setrole(self, actor):
+        Townie.setrole(self, actor)
+        actor.addability(Ability(Watch, Night))
+
+class NightWatchman(Townie):
+    def setrole(self, actor):
+        Townie.setrole(self, actor)
+        actor.addability(Ability(Patrol, Night))
+
+class DoubleVoter(Townie):
+    def setrole(self, actor):
+        Role.setrole(self, actor)
+        actor.addability(Ability(Vote, Day, free=True, args=[2] ))
+
+class NonVoter(Townie):
+    def setrole(self, actor):
+        Role.setrole(self, actor)
+        actor.addability(Ability(Vote, Day, free=True, args=[0] ))

@@ -1,17 +1,14 @@
-from mafqueue import *
-from player import *
+import copy
 import random
 
-import faction
-import phase
-import role
+import mafl
 
 class State:
     def __init__(self):
         self.channel = None
 
-        self.queue = Mqueue()
-        self.resqueue = Mqueue()
+        self.queue = mafl.Mqueue()
+        self.resqueue = mafl.Mqueue()
         self.bus = {}
 
         self.slot = {}
@@ -21,8 +18,8 @@ class State:
 
         self.out = []
 
-        self.phase = phase.Starting
-        self.newphase = phase.Starting
+        self.phase = mafl.phase.Starting
+        self.newphase = mafl.phase.Starting
 
         self.votes = {}
 
@@ -81,7 +78,7 @@ class State:
         slot = len(self.players)
         self.slot[name] = slot
         self.name[slot] = name
-        self.players.append(Player(name, faction))
+        self.players.append(mafl.Player(name, faction))
 
     def enqueue(self, action):
         print("enqueue",action)
@@ -99,30 +96,41 @@ class State:
             self.queue = act.resolve(self)
 #        print("resolve done")
 
+    def resetvotes(self):
+        self.votes = {}
+
     def resetuses(self):
         for name, slot in self.slot.items():
             player = self.playerbyslot(slot)
-            for _, abi in player.abilities.items():
-                abi.used = False
-            for _, abi in player.faction.abilities.items():
+            for abi in player.allabilities():
                 abi.used = False
 
     def resetout(self):
         self.out = []
 
-    def reset(self):
+    def resetphase(self):
+        self.resetuses()
+        self.resetout()
+        self.resetvotes()
+
         self.queue = Mqueue()
         self.resqueue = Mqueue()
+
         for name, slot in self.slot.items():
             player = self.playerbyslot(slot)
             player.living = True
         self.bus = {}
 
-        self.phase = phase.Starting
-        self.newphase = phase.Starting
+    def reset(self):
+        channel = self.channel
+        self.__init__()
+        self.channel = channel
 
     def playernames(self):
         return list(self.name.values())
+
+    def names(self, slots):
+        return [self.name[x] for x in slots]
 
     def living(self):
         living = []
@@ -160,50 +168,50 @@ class State:
 
         self.resetout()
 
-        town = faction.town()
-        maf = faction.mafia()
-        survivor = faction.survivor()
+        town = mafl.faction.Town()
+        maf = mafl.faction.Mafia()
+        survivor = mafl.faction.Survivor()
 
         tmp = list(self.players)
         random.shuffle(tmp)
         if len(tmp) == 3:
             p = tmp.pop()
             p.faction = maf
-            role.Townie().setrole(p)
+            mafl.role.Townie().setrole(p)
             for p in tmp:
                 p.faction = town
-                role.Townie().setrole(p)
+                mafl.role.Townie().setrole(p)
             self.message(None, "game started")
             self.nextphase()
         elif len(tmp) == 4:
             p = tmp.pop()
             p.faction = maf
-            role.Townie().setrole(p)
+            mafl.role.Townie().setrole(p)
 
             if random.choice([True,False]): # 50/50 a doctor
                 p = tmp.pop()
                 p.faction = town
-                role.Doctor().setrole(p)
+                mafl.role.Doctor().setrole(p)
 
             for p in tmp:
                 p.faction = town
-                role.Townie().setrole(p)
+                mafl.role.DoubleVoter().setrole(p)
 
             self.message(None, "game started")
             self.nextphase()
         elif len(tmp) == 5:
             p = tmp.pop()
             p.faction = maf
-            role.Townie().setrole(p)
+            mafl.role.Townie().setrole(p)
 
             if random.choice([True,False]):
                 p = tmp.pop()
                 p.faction = town
-                role.Doctor().setrole(p)
+                mafl.role.Doctor().setrole(p)
 
             for p in tmp:
                 p.faction = town
-                role.Townie().setrole(p)
+                mafl.role.Townie().setrole(p)
             self.message(None, "game started")
             self.nextphase()
         elif len(tmp) == 6:
@@ -215,11 +223,11 @@ class State:
             if random.choice([True,False]):
                 p = tmp.pop()
                 p.faction = town
-                role.Doctor().setrole(p)
+                mafl.role.Doctor().setrole(p)
             else:
                 p = tmp.pop()
                 p.faction = town
-                role.Cop().setrole(p)
+                mafl.role.Cop().setrole(p)
 
             for p in tmp:
                 p.faction = town
@@ -234,15 +242,16 @@ class State:
             if random.choice([True,False]):
                 p = tmp.pop()
                 p.faction = town
-                role.Doctor().setrole(p)
+                mafl.role.Doctor().setrole(p)
 
             if random.choice([True,False]):
                 p = tmp.pop()
                 p.faction = town
-                role.Cop().setrole(p)
+                mafl.role.Cop().setrole(p)
 
             for p in tmp:
                 p.faction = town
+    
             self.message(None, "game started")
             self.nextphase()
         else:
@@ -252,26 +261,28 @@ class State:
         msg = "living players: %s"% ", ".join([x.name for x in self.living()])
         self.message(None, msg)
 
+    def rolepm(self, name):
+        player = self.playerbyname(name)
+        self.message(name, player.rolepm())
+
     def run(self):
         done = 0
 #        print("state.run")
 
-        if self.phase != phase.Starting:
-
+        if self.phase == mafl.phase.Starting:
+            # send role pms
+            for name, slot in self.slot.items():
+                player = self.playerbyslot(slot)
+                self.message(name, player.rolepm())
+        else:
             # if nobody has an unused ability, end the phase
             # if no player has an ability (night or day) then
             # it'll instantly alternate between day and night forever
             unused = False
             for name, slot in self.slot.items():
                 player = self.playerbyslot(slot)
-                for _,ability in player.faction.abilities.items():
-                    if ability.phase is self.phase and not ability.used:
-                        unused = True
-#                        print("state.run, unused action", ability.action)
-                for _,ability in player.abilities.items():
-                    if ability.phase is self.phase and not ability.used:
-                        unused = True
-#                        print("state.run, unused action", ability.action)
+                if player.unused(self):
+                    unused = True
             if not unused:
 #                print("state.run, found no unused actions")
                 self.nextphase()
@@ -282,11 +293,11 @@ class State:
             win,lose,draw = self.checkwin()
             if win or draw:
                 if draw:
-                    self.message(None, "game over, draw: %s"% draw)
+                    self.message(None, "game over, draw: %s"% self.names(draw))
                 else:
-                    self.message(None, "game over, winners: %s"% win)
-                    self.message(None, "losers: %s"% lose)
-                self.reset()
+                    self.message(None, "game over, winners: %s"% self.names(win))
+                    self.message(None, "losers: %s"% self.names(lose))
+                self.nextphase(mafl.phase.Done)
 
         if self.phase != self.newphase:
             self.resolve()
@@ -294,10 +305,15 @@ class State:
             self.livingmsg()
 
             self.resetuses()
+            self.resetvotes()
 
             self.phase = self.newphase
 
-        ret = list(self.out)
+        ret = copy.deepcopy(self.out)
+
+        if self.phase is mafl.phase.Done:
+            self.reset()
+
         self.out = []
 
         return ret
@@ -320,7 +336,7 @@ class State:
                 self.votes[target] = [voter]
 
             if len(self.votes[target]) > int(len(self.living()) / 2):
-                self.enqueue(mafia.actions.Kill(voter, [target], ["lynched"]))
+                self.enqueue(mafl.actions.Kill(voter, [target], ["lynched"]))
                 lynched = True
         if lynched:
             self.nextphase()

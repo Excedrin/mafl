@@ -8,7 +8,12 @@ class Ability:
         self.args = args
 
     def __str__(self):
-        return("ability: %s %s %s %s" %(self.action.name, self.phase, self.uses, self.used))
+        desc = [self.action.name, "(%s)" % self.phase.name]
+        if self.uses:
+            desc.insert(0, "%d use" % self.uses)
+        if self.args:
+            desc.insert(0, "special %s" % self.args)
+        return(" ".join(desc))
 
     def reset(self):
         self.used = False
@@ -22,11 +27,12 @@ class Ability:
         elif not issubclass(self.phase, state.phase):
             err = "%s can't be used during this phase" % self.action.name
         else:
-            self.used = True
-            if not self.free and self.uses:
-                self.uses -= 1
+            if not self.free:
+                self.used = True
+                if self.uses:
+                    self.uses -= 1
             slots = [state.slotbyname(x) for x in targets]
             actor = state.slotbyplayer(player)
             state.enqueue(self.action(actor, slots, self.args))
-            return (True, "confirmed")
+            return (True, "%s confirmed"%(self.action.name))
         return (False, err)
