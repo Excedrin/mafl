@@ -1,3 +1,4 @@
+import time
 import copy
 import random
 
@@ -18,10 +19,12 @@ class State:
 
         self.out = []
 
-        self.phase = mafl.phase.Starting
-        self.newphase = mafl.phase.Starting
+        self.phase = mafl.phase.Idle
+        self.newphase = mafl.phase.Idle
 
         self.votes = {}
+
+        self.timers = {}
 
     def message(self, who, message):
         self.out.append((who, message))
@@ -163,9 +166,7 @@ class State:
             return (winners, losers, ())
         return ((), (), ())
 
-    def start(self, channel):
-        self.channel = channel
-
+    def setup(self):
         self.resetout()
 
         town = mafl.faction.Town()
@@ -195,7 +196,7 @@ class State:
 
             for p in tmp:
                 p.faction = town
-                mafl.role.DoubleVoter().setrole(p)
+                mafl.role.Townie().setrole(p)
 
             self.message(None, "game started")
             self.nextphase()
@@ -257,24 +258,39 @@ class State:
         else:
             self.message(None, "needs more players")
 
+    def start(self, channel):
+        if self.phase == mafl.phase.Idle:
+            print("start")
+            self.channel = channel
+
+            self.nextphase()
+
+            self.timers['start'] = time.time() + 20
+
+    def tick(self):
+        if self.phase == mafl.phase.Signups:
+            timer = self.timers['start']
+            if time.time() > timer:
+                self.nextphase()
+                self.setup()
+            elif time.time() + 60 > timer:
+                remaining = int(timer - time.time())
+                if remaining > 0 and remaining % 10 == 0:
+                    self.message(None, "game starts in %d seconds"%(remaining))
+
     def livingmsg(self):
         msg = "living players: %s"% ", ".join([x.name for x in self.living()])
         self.message(None, msg)
 
     def rolepm(self, name):
         player = self.playerbyname(name)
-        self.message(name, player.rolepm())
+        self.message(name, player.rolepm(self))
 
     def run(self):
         done = 0
 #        print("state.run")
 
-        if self.phase == mafl.phase.Starting:
-            # send role pms
-            for name, slot in self.slot.items():
-                player = self.playerbyslot(slot)
-                self.message(name, player.rolepm())
-        else:
+        if self.phase.started:
             # if nobody has an unused ability, end the phase
             # if no player has an ability (night or day) then
             # it'll instantly alternate between day and night forever
@@ -293,13 +309,20 @@ class State:
             win,lose,draw = self.checkwin()
             if win or draw:
                 if draw:
-                    self.message(None, "game over, draw: %s"% self.names(draw))
+                    self.message(None, "game over, draw: %s"% ", ".join(self.names(draw)))
                 else:
-                    self.message(None, "game over, winners: %s"% self.names(win))
-                    self.message(None, "losers: %s"% self.names(lose))
+                    self.message(None, "game over, winners: %s"% ", ".join(self.names(win)))
+                    self.message(None, "losers: %s"% ", ".join(self.names(lose)))
                 self.nextphase(mafl.phase.Done)
 
         if self.phase != self.newphase:
+            if self.phase == mafl.phase.Signups:
+                print("sending roles", self.phase, self.newphase)
+                # send role pms
+                for name, slot in self.slot.items():
+                    player = self.playerbyslot(slot)
+                    self.message(name, player.rolepm(self))
+
             self.resolve()
             self.message(None, self.newphase.name)
             self.livingmsg()
@@ -336,7 +359,7 @@ class State:
                 self.votes[target] = [voter]
 
             if len(self.votes[target]) > int(len(self.living()) / 2):
-                self.enqueue(mafl.actions.Kill(voter, [target], ["lynched"]))
+                self.enqueue(mafl.actions.Lynch(voter, [target]))
                 lynched = True
         if lynched:
             self.nextphase()

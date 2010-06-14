@@ -14,16 +14,20 @@ class Player(Actor):
     def allabilities(self):
         abilities = []
 
-        for _,ability in self.faction.abilities.items():
-            abilities.append(ability)
+        if self.faction:
+            for _,ability in self.faction.abilities.items():
+                abilities.append(ability)
         for _,ability in self.abilities.items():
             abilities.append(ability)
 
         return abilities
 
-    def rolepm(self):
+    def rolepm(self, state):
         abilitystr = ", ".join(map(str, self.allabilities()))
-        return "%s - %s" %(self.faction.name, abilitystr)
+        return "%s - %s" %(self.faction.rolepm(state), abilitystr)
+
+    def flip(self):
+        return self.faction.name
 
     def unused(self, state):
         if self.living:

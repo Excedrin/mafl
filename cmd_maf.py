@@ -22,6 +22,24 @@ def fuzzy(state, tryname):
 def cleanargs(state, args):
     return [fuzzy(state, x) for x in args]
 
+def rungame(bot, state):
+    result = state.run()
+    for target, l in result:
+        print("res:",target,l)
+        if target:
+            bot.privmsg(target, l)
+        elif state.channel:
+            bot.privmsg(state.channel, l)
+        else:
+            bot.reply(to, who, l)
+
+def tick(bot):
+    state = bot.get('maf')
+    if state:
+        state.tick()
+        rungame(bot, state)
+    bot.store('maf', state)
+
 def run(bot, command, to, who, args):
     state = bot.get('maf')
 
@@ -96,12 +114,6 @@ def run(bot, command, to, who, args):
                 print("exception trying to handle player ability: %s\n%s\n" %(ability, e))
                 traceback.print_exc()
 
-    result = state.run()
-    for target, l in result:
-        print("res:",target,l)
-        if target:
-            bot.privmsg(target, l)
-        else:
-            bot.privmsg(state.channel, l)
+    rungame(bot, state)
 
     bot.store('maf', state)

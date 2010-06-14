@@ -1,5 +1,5 @@
-#!/usr/bin/python2
 import socket
+import select
 import copy
 import sys
 import traceback
@@ -149,12 +149,31 @@ class Bot():
         self.exit = False
 
         self.connect()
+        p = select.poll()
+        p.register(self.s, select.POLLIN)
+
+        fdmap = {}
+        fdmap[self.s.fileno()] = self.s
+
         while not self.exit and not self.reload:
-            buf = self.s.recv(4096).decode('utf8')
-            lines = buf.split("\r\n")
-            for line in lines:
-                if line:
-                    self.parse(stripcolors(line))
-            sys.stdout.flush()
+            for fd,event in p.poll(1000):
+                if event & select.POLLIN and fd in fdmap:
+                    sock = fdmap[fd]
+                    buf = sock.recv(4096).decode('utf8')
+                    lines = buf.split("\r\n")
+                    for line in lines:
+                        if line:
+                            self.parse(stripcolors(line))
+                    sys.stdout.flush()
+            else:
+                # poll timeout
+                pass
+                for cmd in self.commands:
+                    tick = getattr(cmd,'tick',lambda _: None)
+                    try:
+                        tick(self)
+                    except Exception as e:
+                        print("exception running cmd tick: %s\n%s\n" %(cmd, e))
+                        traceback.print_exc()
 
         return (self, self.exit)

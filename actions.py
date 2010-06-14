@@ -81,7 +81,25 @@ class Kill(Action):
             how = "killed"
             if self.args:
                 how = self.args[0]
-            state.message(None, "%s %s"%(player.name,how))
+            state.message(None, "%s (%s) was %s"%(player.name, player.flip(), how))
+
+        return state.queue
+
+class Lynch(Kill):
+    name = "lynch"
+    priority = 70
+
+    def resolve(self, state):
+        state.resolved(self)
+
+        for slot in self.targets:
+            player = state.playerbyslot(slot)
+            player.living = False
+            print("lynch resolved (%s killed by %s)" % (player.name, self.actor))
+            how = "lynched"
+            if self.args:
+                how = self.args[0]
+            state.message(None, "%s (%s) was %s"%(player.name, player.flip(), how))
 
         return state.queue
 
