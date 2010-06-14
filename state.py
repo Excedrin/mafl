@@ -101,7 +101,8 @@ class State:
 #        print("resolve done")
 
     def resetuses(self):
-        for slot, player in self.slots.items():
+        for name, slot in self.slot.items():
+            player = self.playerbyslot(slot)
             for _, abi in player.abilities.items():
                 abi.used = False
             for _, abi in player.faction.abilities.items():
@@ -113,7 +114,8 @@ class State:
     def reset(self):
         self.queue = Mqueue()
         self.resqueue = Mqueue()
-        for slot, player in self.slots.items():
+        for name, slot in self.slot.items():
+            player = self.playerbyslot(slot)
             player.living = True
         self.bus = {}
 
@@ -125,14 +127,16 @@ class State:
 
     def living(self):
         living = []
-        for slot, player in self.slots.items():
+        for name, slot in self.slot.items():
+            player = self.playerbyslot(slot)
             if player.living:
                 living.append(player)
         return living
 
     def dead(self):
         dead = []
-        for slot, player in self.slots.items():
+        for name, slot in self.slot.items():
+            player = self.playerbyslot(slot)
             if not player.living:
                 dead.append(player)
         return dead
@@ -140,13 +144,14 @@ class State:
     def checkwin(self):
         winners = []
         losers = []
-        for slot, player in self.slots.items():
+        for name, slot in self.slot.items():
+            player = self.playerbyslot(slot)
             if player.faction.win(self, player):
                 winners.append(slot)
             else:
                 losers.append(slot)
         if not self.living():
-            return ((), (), list(self.slots.keys()))
+            return ((), (), list(self.slot.keys()))
         if winners:
             return (winners, losers, ())
         return ((), (), ())
@@ -244,6 +249,10 @@ class State:
         else:
             self.message(None, "needs more players")
 
+    def livingmsg(self):
+        msg = "living players: %s"% ", ".join([x.name for x in self.living()])
+        self.message(None, msg)
+
     def run(self):
         done = 0
 #        print("state.run")
@@ -254,7 +263,8 @@ class State:
             # if no player has an ability (night or day) then
             # it'll instantly alternate between day and night forever
             unused = False
-            for slot, player in self.slots.items():
+            for name, slot in self.slot.items():
+                player = self.playerbyslot(slot)
                 for _,ability in player.faction.abilities.items():
                     if ability.phase is self.phase and not ability.used:
                         unused = True
@@ -273,17 +283,16 @@ class State:
             win,lose,draw = self.checkwin()
             if win or draw:
                 if draw:
-                    self.out.append((None,"game over, draw: %s"% draw))
+                    self.message(None, "game over, draw: %s"% draw)
                 else:
-                    self.out.append((None,"game over, winners: %s"% win))
-                    self.out.append((None,"losers: %s"% lose))
+                    self.message(None, "game over, winners: %s"% win)
+                    self.message(None, "losers: %s"% lose)
                 self.reset()
 
         if self.phase != self.newphase:
             self.resolve()
-            self.out.append((None,self.newphase.name))
-            self.out.append((None, "living: %s"% [x.name for x in self.living()] ))
-#            self.out.append((None, "dead: %s"% [x.name for x in self.dead()] ))
+            self.message(None, self.newphase.name)
+            self.livingmsg()
 
             self.resetuses()
 

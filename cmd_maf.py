@@ -41,11 +41,8 @@ def run(bot, command, to, who, args):
             run(bot, args[1], to, args[0], args[2:])
 #        state.newplayer(args[0], None)
 
-    elif command == "%players":
-        bot.reply(to, who, "%s" %state.playernames())
-
     elif command == "%living":
-        bot.reply(to, who, "%s" %[x.name for x in state.living()])
+        state.livingmsg()
 
     elif command == "%forcenextphase":
         state.nextphase()
