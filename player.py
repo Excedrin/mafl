@@ -1,8 +1,15 @@
-class Player:
-    def __init__(self, name):
+from actor import Actor
+
+class Player(Actor):
+    def __init__(self, name, faction):
+        Actor.__init__(self)
+
         self.name = name
-        self.align = "unknown"
+        self.faction = faction
         self.living = True
-        self.faction = None
+
     def __str__(self):
-        return self.name
+        return "Player %s" %self.name
+
+    def rolepm(self):
+        return ""
