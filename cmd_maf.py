@@ -30,9 +30,6 @@ def run(bot, command, to, who, args):
     if state == None:
         state = mafia.State()
 
-    if command == "%test":
-        state.test()
-
     if command == "%join":
         state.newplayer(who, None)
 
