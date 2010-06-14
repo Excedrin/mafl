@@ -2,7 +2,6 @@ from mafqueue import *
 from player import *
 import random
 
-import mafia
 import faction
 import phase
 import role
@@ -16,7 +15,7 @@ class State:
         self.bus = {}
 
         self.slot = {}
-        self.names = {}
+        self.name = {}
 
         self.players = []
 
@@ -81,7 +80,7 @@ class State:
     def newplayer(self, name, faction):
         slot = len(self.players)
         self.slot[name] = slot
-        self.names[slot] = name
+        self.name[slot] = name
         self.players.append(Player(name, faction))
 
     def enqueue(self, action):
@@ -123,7 +122,7 @@ class State:
         self.newphase = phase.Starting
 
     def playernames(self):
-        return list(self.names.values())
+        return list(self.name.values())
 
     def living(self):
         living = []
@@ -331,3 +330,13 @@ class State:
             voters = [self.playerbyslot(x).name for x in self.votes[k]]
             wagon = "%s (%d) - %s" % (self.playerbyslot(k).name, len(voters), ', '.join(voters))
             self.message(None, wagon)
+
+    def replace(self, p1, p2):
+        slot = self.slotbyname(p1)
+        if slot:
+            player = self.playerbyslot(slot)
+            player.name = p2
+            self.slot[p2] = slot
+            del self.slot[p1]
+            self.name[slot] = p2
+            self.message(None, "replaced %s with %s"%(p1,p2))

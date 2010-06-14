@@ -157,6 +157,4 @@ class Bot():
                     self.parse(stripcolors(line))
             sys.stdout.flush()
 
-        print("exiting or reloading")
-
         return (self, self.exit)

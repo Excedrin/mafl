@@ -30,6 +30,9 @@ def run(bot, command, to, who, args):
     if state == None:
         state = mafia.State()
 
+    if command == "%test":
+        state.test()
+
     if command == "%join":
         state.newplayer(who, None)
 
@@ -54,14 +57,7 @@ def run(bot, command, to, who, args):
         state.votecount()
 
     elif command == "%replace":
-        print("replacing:",args)
-        slot = state.slotbyname(args[0])
-        if slot:
-            player = state.playerbyslot(slot)
-            player.name = args[1]
-            print("slot",slot)
-            state.slot[args[1]] = slot
-            del state.slot[args[0]]
+        state.replace(args[0], args[1])
 
     elif to and to[0] == "#" and command == "%start":
         state.start(to)
