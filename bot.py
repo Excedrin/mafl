@@ -76,6 +76,10 @@ class Bot():
 
             self.state = {}
 
+            self.joined = False
+            self.lastsent = 0
+            self.sent = 0
+
         if len(args) == 1:
             self.state = {}
             instance = args[0]
@@ -87,7 +91,9 @@ class Bot():
         self.commands = [cmd_raw, cmd_version, cmd_time, cmd_maf]
 
     def send(self, msg):
-        self.s.send(bytes(msg.encode('utf8')) + b"\r\n")
+        msg = bytes(msg.encode('utf8')) + b"\r\n"
+        self.sent += len(msg)
+        self.s.send(msg)
 
     def privmsg(self, to, msg):
         self.send("PRIVMSG %s :%s" %(to, msg))
@@ -111,7 +117,6 @@ class Bot():
             self.send('NICK %s' %self.nick)
             self.send('USER %s %s %s :%s' %(self.ident,self.ident,self.ident,self.name))
             print("connected")
-            self.send('join #m')
 
     def parse(self, line):
         fields = line.split(" ")
@@ -121,6 +126,10 @@ class Bot():
 #            print('replying: ' + msg)
             self.send(msg)
         if len(fields) > 2:
+            if (nick(fields[0]) == self.nick) and fields[1] == 'JOIN':
+                self.joined = True
+            if fields[1] == 'KICK':
+                self.joined = False
             if fields[1] == 'PRIVMSG' or fields[1] == 'NOTICE':
                 msg = clean(" ".join(fields[3:]))
                 who = nick(fields[0])
@@ -144,6 +153,25 @@ class Bot():
                         print("exception running cmd: %s\n%s\n" %(cmd, e))
                         traceback.print_exc()
 
+    def tick(self):
+        rate = self.sent - self.lastsent
+        if rate:
+            print("rate:",rate)
+        self.lastsent = self.sent
+        
+        # join hack
+        if not self.joined:
+            print("join")
+            self.send('JOIN :#m')
+
+        for cmd in self.commands:
+            tick = getattr(cmd,'tick',lambda _: None)
+            try:
+                tick(self)
+            except Exception as e:
+                print("exception running cmd tick: %s\n%s\n" %(cmd, e))
+                traceback.print_exc()
+
     def run(self):
         self.reload = False
         self.exit = False
@@ -165,15 +193,7 @@ class Bot():
                         if line:
                             self.parse(stripcolors(line))
                     sys.stdout.flush()
-            else:
-                # poll timeout
-                pass
-                for cmd in self.commands:
-                    tick = getattr(cmd,'tick',lambda _: None)
-                    try:
-                        tick(self)
-                    except Exception as e:
-                        print("exception running cmd tick: %s\n%s\n" %(cmd, e))
-                        traceback.print_exc()
+            else: # poll timeout
+                self.tick()
 
         return (self, self.exit)

@@ -83,6 +83,10 @@ class State:
         self.name[slot] = name
         self.players.append(mafl.Player(name, faction))
 
+    def join(self, name):
+        if self.phase == mafl.phase.Idle or self.phase == mafl.phase.Signups:
+            self.newplayer(name, None)
+
     def enqueue(self, action):
         print("enqueue",action)
         self.queue.enqueue(action)

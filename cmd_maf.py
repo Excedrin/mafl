@@ -50,7 +50,7 @@ def run(bot, command, to, who, args):
         state = game.State()
 
     if command == "%join":
-        state.newplayer(who, None)
+        state.join(who)
 
     elif command == "%role":
         state.rolepm(who)
