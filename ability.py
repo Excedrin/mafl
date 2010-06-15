@@ -9,17 +9,13 @@ class Ability:
         self.args = args
 
     def __str__(self):
-        desc = [self.action.name, "(%s)" % self.phase.name]
+        # instantiate an action to get it to format itself
+        desc = [str(self.action(0,[],self.args)), "(%s phase)" % self.phase.name]
+        if self.auto:   
+            desc.insert(0, "auto")
+
         if self.uses:
             desc.insert(0, "%d use" % self.uses)
-        msg = []
-        for a in self.args:
-            if isinstance(a, object) and hasattr(a,'name'):
-                msg.append(a.name)
-            else:
-                msg.append(str(a))
-                
-        desc.insert(0, "special %s" % ' '.join(msg))
         return(" ".join(desc))
 
     def reset(self):
@@ -44,7 +40,8 @@ class Ability:
             return (True, "%s confirmed"%(self.action.name))
         return (False, err)
 
-    def useauto(self, state, player):
-        if self.auto:
-            actor = state.slotbyplayer(player)
-            state.enqueue(self.action(actor, [actor], self.args))
+    def useauto(self, phase, player):
+        if self.auto and issubclass(self.phase, phase):
+            return self.action(player, [player], self.args)
+        else:
+            return None

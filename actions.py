@@ -18,7 +18,8 @@ class Action:
         return self.__class__.priority < other.__class__.priority
 
     def __str__(self):
-        return("Action: %s %s %s" % (self.actor, self.__class__.name, self.targets))
+        return self.__class__.name
+#        return("Action: %s %s %s" % (self.actor, self.__class__.name, self.targets))
 
     def resolve(self, state):
         return state.queue
@@ -342,11 +343,16 @@ class Reflex(Action):
             for act in state.queue:
                 if target in act.targets:
                     for reflexact in self.args:
-                        reflexact.actor = target
-                        reflexact.targets = [act.actor]
-                        state.queue.enqueue(reflexact)
+                        newact = copy.deepcopy(reflexact)
+                        newact.actor = target
+                        if not newact.targets:
+                            newact.targets = [act.actor]
+                        state.queue.enqueue(newact)
 
         return state.queue
+
+    def __str__(self):
+        return "%s (%s)" %(self.__class__.name, ' '.join(map(str, self.args)))
 
 class Track(Action):
 

@@ -88,5 +88,5 @@ class NonVoter(Townie):
 
 class ParanoidGunOwner(Townie):
     def setrole(self, actor):
-        Role.setrole(self, actor)
+        Townie.setrole(self, actor)
         actor.addability(Ability(Reflex, Any, auto=True, args=[Kill(0, [])] ))

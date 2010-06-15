@@ -33,7 +33,7 @@ class Setup:
 
             for p in self.players:
                 p.faction = town
-                mafl.role.ParanoidGunOwner().setrole(p)
+                mafl.role.Townie().setrole(p)
         elif len(self.players) == 5:
             p = self.players.pop()
             p.faction = maf

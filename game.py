@@ -10,6 +10,8 @@ class Game:
 
         self.queue = mafl.Mqueue()
         self.resqueue = mafl.Mqueue()
+        self.autoqueue = mafl.Mqueue()
+
         self.bus = {}
 
         self.slot = {}
@@ -96,13 +98,15 @@ class Game:
         self.resqueue.enqueue(action)
 
     def resolve(self):
-#        print("resolve")
-        while self.queue:
-#            print("resolve q:", self.queue)
-            act = self.queue.pop()
-#            print("resolve act:", act)
-            self.queue = act.resolve(self)
-#        print("resolve done")
+        if self.queue:
+            self.queue.merge(self.autoqueue)
+#            print("resolve")
+            while self.queue:
+#                print("resolve q:", self.queue)
+                act = self.queue.pop()
+#                print("resolve act:", act)
+                self.queue = act.resolve(self)
+#            print("resolve done")
 
     def resetvotes(self):
         self.votes = {}
@@ -123,10 +127,12 @@ class Game:
 
         self.queue = Mqueue()
         self.resqueue = Mqueue()
+        self.autoqueue = Mqueue()
 
         for name, slot in self.slot.items():
             player = self.playerbyslot(slot)
             player.living = True
+
         self.bus = {}
 
     def reset(self):
@@ -242,8 +248,11 @@ class Game:
 
     def useautoabilities(self):
         for player in self.players:
-            for abi in player.allabilities():
-                abi.useauto(self, player)
+            slot = self.slotbyplayer(player)
+            abilities = player.allabilities()
+            for action in filter(None, map(lambda x: x.useauto(self.phase, slot), abilities)):
+                print("enqueue(auto)",action)
+                self.autoqueue.enqueue(action)
 
     def run(self):
         done = 0
@@ -277,15 +286,16 @@ class Game:
         # phase changed!
         if self.phase != self.newphase:
             if self.phase == mafl.phase.Signups:
-                print("sending roles", self.phase, self.newphase)
+                print("sending roles")
                 # send role pms
                 for name, slot in self.slot.items():
                     player = self.playerbyslot(slot)
                     self.message(name, player.rolepm(self))
 
-            self.useautoabilities()
-
+            # resolve the previous phase's actions,
+            # must do this before enqueuing auto abilities
             self.resolve()
+
             self.message(None, self.newphase.name)
             self.livingmsg()
 
@@ -293,6 +303,7 @@ class Game:
             self.resetvotes()
 
             self.phase = self.newphase
+            self.useautoabilities()
 
         ret = copy.deepcopy(self.out)
 

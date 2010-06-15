@@ -59,7 +59,7 @@ def stripcolors(s):
             i += 1
     return r
 
-MAXCMDS = 5
+MAXCMDS = 6
 class Bot():
     def __init__(self, *args):
         if len(args) == 5:
