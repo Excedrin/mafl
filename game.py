@@ -1,6 +1,8 @@
-import time
 import copy
 import random
+
+import time
+import timers
 
 import mafl
 
@@ -26,7 +28,7 @@ class Game:
 
         self.votes = {}
 
-        self.timers = {}
+        self.timers = timers.Timers()
         self.lastvc = 0
 
     def message(self, who, message):
@@ -185,13 +187,14 @@ class Game:
 
             self.nextphase()
 
-            self.timers['start'] = time.time() + 300
+            self.timers.settimer('start', 300)
             self.message(None, "game starts in %d seconds"%300)
 
     def wait(self):
         if self.phase == mafl.phase.Signups:
-            self.timers['start'] = time.time() + 60
-            self.message(None, "game start delayed %d seconds"%60)
+            if self.timers.remaining('start') < 60:
+                self.timers.settimer('start', 60)
+                self.message(None, "game start delayed %d seconds"%60)
 
     def reallygo(self):
         self.setup = mafl.setup.Setup(self.players)
@@ -205,38 +208,30 @@ class Game:
             if now == "now":
                 self.reallygo()
             else:
-                self.timers['start'] = time.time() + 10
+                self.timers.settimer('start', 11)
 
     def tick(self):
         if self.phase == mafl.phase.Signups:
-            timer = self.timers['start']
-            if time.time() > timer:
+            remaining = self.timers.remaining('start')
+            if remaining < 0:
                 self.reallygo()
-            elif time.time() + 60 > timer:
-                remaining = int(timer - time.time())
-                if remaining > 0 and remaining in (30,10):
-                    self.message(None, "game starts in %d seconds"%(remaining))
+            elif remaining in (30,10):
+                self.message(None, "game starts in %d seconds"%(remaining))
 
         if self.phase == mafl.phase.Day:
-            if not 'vote' in self.timers:
-                self.timers['vote'] = time.time() + 180
-                print("autovotecount")
-            timer = self.timers['vote']
-            if time.time() > timer:
+            self.timers.setfirst('vote', 180)
+            if self.timers.expired('vote'):
                 self.votecount()
-                del self.timers['vote']
+                self.timers.settimer('vote', 180)
 
         if self.phase == mafl.phase.Night:
-            if not 'night' in self.timers:
-                self.timers['night'] = time.time() + 180
-            timer = self.timers['night']
-            remaining = int(timer - time.time())
-            if remaining > 0 and remaining in (173,89,37,11):
+            self.timers.setfirst('night', 180)
+            remaining = self.timers.remaining('night')
+            if remaining in (173,89,37,11):
                 self.message(None, "night ends in %d seconds"%(remaining))
-            if time.time() > timer:
+            if remaining < 0:
                 self.message(None, "night timed out")
                 self.nextphase()
-                del self.timers['night']
 
     def livingmsg(self):
         msg = "living players: %s"% ", ".join([x.name for x in self.living()])
@@ -296,13 +291,14 @@ class Game:
             # must do this before enqueuing auto abilities
             self.resolve()
 
-            self.message(None, self.newphase.name)
-            self.livingmsg()
+            self.phase = self.newphase
+            if self.phase != mafl.phase.Done:
+                self.message(None, self.phase.name)
+                self.livingmsg()
 
             self.resetuses()
             self.resetvotes()
 
-            self.phase = self.newphase
             self.useautoabilities()
 
         ret = copy.deepcopy(self.out)
