@@ -10,7 +10,7 @@ actions are in:
 actions.py
 
 core game state:
-state.py
+game.py
 
 misc support for actions:
 player.py

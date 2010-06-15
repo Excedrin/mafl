@@ -1,4 +1,4 @@
-import state as game
+import game
 
 import traceback
 from difflib import SequenceMatcher
@@ -47,7 +47,7 @@ def run(bot, command, to, who, args):
         state = None
 
     if state == None:
-        state = game.State()
+        state = game.Game()
 
     if command == "%join":
         state.join(who)
@@ -81,7 +81,7 @@ def run(bot, command, to, who, args):
     elif to and to[0] == "#" and command == "%wait":
         state.wait()
     elif to and to[0] == "#" and command == "%go":
-        state.go()
+        state.go(args[0] if args else None)
 
     elif command == "%dump":
         print(dumper.dump(state))

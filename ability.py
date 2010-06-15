@@ -1,10 +1,11 @@
 class Ability:
-    def __init__(self, action, phase, uses=None, free=False, args=[]):
+    def __init__(self, action, phase, uses=None, free=False, auto=False, args=[]):
         self.action = action
         self.phase = phase
         self.uses = uses
         self.used = False
         self.free = free
+        self.auto = auto
         self.args = args
 
     def __str__(self):

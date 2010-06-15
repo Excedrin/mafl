@@ -4,7 +4,7 @@ import random
 
 import mafl
 
-class State:
+class Game:
     def __init__(self):
         self.channel = None
 
@@ -171,97 +171,6 @@ class State:
             return (winners, losers, ())
         return ((), (), ())
 
-    def setup(self):
-        self.resetout()
-
-        town = mafl.faction.Town()
-        maf = mafl.faction.Mafia()
-        survivor = mafl.faction.Survivor()
-
-        tmp = list(self.players)
-        random.shuffle(tmp)
-        if len(tmp) == 3:
-            p = tmp.pop()
-            p.faction = maf
-            mafl.role.Townie().setrole(p)
-            for p in tmp:
-                p.faction = town
-                mafl.role.Townie().setrole(p)
-        elif len(tmp) == 4:
-            p = tmp.pop()
-            p.faction = maf
-            mafl.role.Townie().setrole(p)
-
-            if random.choice([True,False]): # 50/50 a doctor
-                p = tmp.pop()
-                p.faction = town
-                mafl.role.Doctor().setrole(p)
-
-            for p in tmp:
-                p.faction = town
-                mafl.role.Townie().setrole(p)
-        elif len(tmp) == 5:
-            p = tmp.pop()
-            p.faction = maf
-            mafl.role.Townie().setrole(p)
-
-            if random.choice([True,False]):
-                p = tmp.pop()
-                p.faction = town
-                mafl.role.Doctor().setrole(p)
-
-            for p in tmp:
-                p.faction = town
-                mafl.role.Townie().setrole(p)
-        elif len(tmp) == 6:
-            p = tmp.pop()
-            p.faction = maf
-            p = tmp.pop()
-            p.faction = maf
-
-            if random.choice([True,False]):
-                p = tmp.pop()
-                p.faction = town
-                mafl.role.Doctor().setrole(p)
-            else:
-                p = tmp.pop()
-                p.faction = town
-                mafl.role.Cop().setrole(p)
-
-            for p in tmp:
-                p.faction = town
-                mafl.role.Townie().setrole(p)
-        elif len(tmp) == 7:
-            p = tmp.pop()
-            p.faction = maf
-            p = tmp.pop()
-            p.faction = maf
-
-            if random.choice([True,False]):
-                p = tmp.pop()
-                p.faction = town
-                mafl.role.Doctor().setrole(p)
-
-            if random.choice([True,False]):
-                p = tmp.pop()
-                p.faction = town
-                mafl.role.Cop().setrole(p)
-
-            for p in tmp:
-                p.faction = town
-                mafl.role.Townie().setrole(p)
-        elif len(tmp) > 7:
-            p = tmp.pop()
-            p.faction = maf
-            p = tmp.pop()
-            p.faction = maf
-
-            for p in tmp:
-                p.faction = town
-                mafl.role.Townie().setrole(p)
-        else:
-            self.message(None, "needs more players, game canceled")
-            self.reset()
 
     def start(self, channel):
         if self.phase == mafl.phase.Idle:
@@ -278,18 +187,25 @@ class State:
             self.timers['start'] = time.time() + 60
             self.message(None, "game start delayed %d seconds"%60)
 
-    def go(self):
+    def reallygo(self):
+        self.setup = mafl.setup.Setup(self.players)
+        if not self.setup.setroles():
+            self.message("Failed to assign roles")
+            self.reset()
+        self.nextphase()
+
+    def go(self, now):
         if self.phase == mafl.phase.Signups:
-#            self.timers['start'] = time.time() + 10
-            self.nextphase()
-            self.setup()
+            if now == "now":
+                self.reallygo()
+            else:
+                self.timers['start'] = time.time() + 10
 
     def tick(self):
         if self.phase == mafl.phase.Signups:
             timer = self.timers['start']
             if time.time() > timer:
-                self.nextphase()
-                self.setup()
+                self.reallygo()
             elif time.time() + 60 > timer:
                 remaining = int(timer - time.time())
                 if remaining > 0 and remaining in (30,10):
