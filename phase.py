@@ -21,8 +21,7 @@ class Night(Phase):
 Day.nextphase = Night
 
 class Any(Day, Night):
-    pass
-
+    name = "any"
 
 class Signups(Phase):
     name = "signups"

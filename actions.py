@@ -345,6 +345,7 @@ class Reflex(Action):
                         reflexact.actor = target
                         reflexact.targets = [act.actor]
                         state.queue.enqueue(reflexact)
+
         return state.queue
 
 class Track(Action):

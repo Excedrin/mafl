@@ -240,6 +240,11 @@ class Game:
         player = self.playerbyname(name)
         self.message(name, player.rolepm(self))
 
+    def useautoabilities(self):
+        for player in self.players:
+            for abi in player.allabilities():
+                abi.useauto(self, player)
+
     def run(self):
         done = 0
 #        print("state.run")
@@ -269,6 +274,7 @@ class Game:
                     self.message(None, "losers: %s"% ", ".join(self.names(lose)))
                 self.nextphase(mafl.phase.Done)
 
+        # phase changed!
         if self.phase != self.newphase:
             if self.phase == mafl.phase.Signups:
                 print("sending roles", self.phase, self.newphase)
@@ -276,6 +282,8 @@ class Game:
                 for name, slot in self.slot.items():
                     player = self.playerbyslot(slot)
                     self.message(name, player.rolepm(self))
+
+            self.useautoabilities()
 
             self.resolve()
             self.message(None, self.newphase.name)
