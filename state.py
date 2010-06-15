@@ -230,6 +230,7 @@ class State:
 
             for p in tmp:
                 p.faction = town
+                mafl.role.Townie().setrole(p)
         elif len(tmp) == 7:
             p = tmp.pop()
             p.faction = maf
@@ -248,6 +249,16 @@ class State:
 
             for p in tmp:
                 p.faction = town
+                mafl.role.Townie().setrole(p)
+        elif len(tmp) > 7:
+            p = tmp.pop()
+            p.faction = maf
+            p = tmp.pop()
+            p.faction = maf
+
+            for p in tmp:
+                p.faction = town
+                mafl.role.Townie().setrole(p)
         else:
             self.message(None, "needs more players, game canceled")
             self.reset()
@@ -269,7 +280,9 @@ class State:
 
     def go(self):
         if self.phase == mafl.phase.Signups:
-            self.timers['start'] = time.time() + 11
+#            self.timers['start'] = time.time() + 10
+            self.nextphase()
+            self.setup()
 
     def tick(self):
         if self.phase == mafl.phase.Signups:
@@ -392,8 +405,8 @@ class State:
         if lynched:
             self.nextphase()
 
-    def votecount(self):
-        if time.time() > self.lastvc + 10:
+    def votecount(self, force=False):
+        if force or time.time() > self.lastvc + 10:
             self.lastvc = time.time()
 
             self.message(None, "Vote count: %d to lynch"%(self.majority()+1))

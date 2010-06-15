@@ -110,6 +110,8 @@ class Bot():
             msg = bytes(msg.encode('utf8')) + b"\r\n"
             self.sent += len(msg)
             self.s.send(msg)
+        else:
+            print("throttled output")
 
     def notice(self, to, msg):
         self.send("NOTICE %s :%s" %(to, msg))

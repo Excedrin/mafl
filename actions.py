@@ -82,6 +82,7 @@ class Kill(Action):
             if self.args:
                 how = self.args[0]
             state.message(None, "%s (%s) was %s"%(player.name, player.flip(), how))
+            state.resetvotes()
 
         return state.queue
 
@@ -100,6 +101,8 @@ class Lynch(Kill):
             if self.args:
                 how = self.args[0]
             state.message(None, "%s (%s) was %s"%(player.name, player.flip(), how))
+            state.votecount(True)
+            state.resetvotes()
 
         return state.queue
 
