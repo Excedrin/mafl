@@ -25,6 +25,7 @@ class State:
         self.votes = {}
 
         self.timers = {}
+        self.lastvc = 0
 
     def message(self, who, message):
         self.out.append((who, message))
@@ -33,7 +34,7 @@ class State:
         if name in self.slot:
             return self.slot[name]
         else:
-            print("no slot",name)
+#            print("no slot",name)
             return None
 
     def slotbyplayer(self, player):
@@ -58,7 +59,7 @@ class State:
     def playerbyname(self, name):
         slot = self.slotbyname(name)
         if slot is None:
-            print("no player",name)
+#            print("no player",name)
             return None
         else:
             return self.playerbyslot(slot)
@@ -186,8 +187,6 @@ class State:
             for p in tmp:
                 p.faction = town
                 mafl.role.Townie().setrole(p)
-            self.message(None, "game started")
-            self.nextphase()
         elif len(tmp) == 4:
             p = tmp.pop()
             p.faction = maf
@@ -201,9 +200,6 @@ class State:
             for p in tmp:
                 p.faction = town
                 mafl.role.Townie().setrole(p)
-
-            self.message(None, "game started")
-            self.nextphase()
         elif len(tmp) == 5:
             p = tmp.pop()
             p.faction = maf
@@ -217,8 +213,6 @@ class State:
             for p in tmp:
                 p.faction = town
                 mafl.role.Townie().setrole(p)
-            self.message(None, "game started")
-            self.nextphase()
         elif len(tmp) == 6:
             p = tmp.pop()
             p.faction = maf
@@ -236,8 +230,6 @@ class State:
 
             for p in tmp:
                 p.faction = town
-            self.message(None, "game started")
-            self.nextphase()
         elif len(tmp) == 7:
             p = tmp.pop()
             p.faction = maf
@@ -256,11 +248,9 @@ class State:
 
             for p in tmp:
                 p.faction = town
-    
-            self.message(None, "game started")
-            self.nextphase()
         else:
-            self.message(None, "needs more players")
+            self.message(None, "needs more players, game canceled")
+            self.reset()
 
     def start(self, channel):
         if self.phase == mafl.phase.Idle:
@@ -269,7 +259,17 @@ class State:
 
             self.nextphase()
 
-            self.timers['start'] = time.time() + 20
+            self.timers['start'] = time.time() + 300
+            self.message(None, "game starts in %d seconds"%300)
+
+    def wait(self):
+        if self.phase == mafl.phase.Signups:
+            self.timers['start'] = time.time() + 60
+            self.message(None, "game start delayed %d seconds"%60)
+
+    def go(self):
+        if self.phase == mafl.phase.Signups:
+            self.timers['start'] = time.time() + 11
 
     def tick(self):
         if self.phase == mafl.phase.Signups:
@@ -279,8 +279,29 @@ class State:
                 self.setup()
             elif time.time() + 60 > timer:
                 remaining = int(timer - time.time())
-                if remaining > 0 and remaining % 10 == 0:
+                if remaining > 0 and remaining in (30,10):
                     self.message(None, "game starts in %d seconds"%(remaining))
+
+        if self.phase == mafl.phase.Day:
+            if not 'vote' in self.timers:
+                self.timers['vote'] = time.time() + 180
+                print("autovotecount")
+            timer = self.timers['vote']
+            if time.time() > timer:
+                self.votecount()
+                del self.timers['vote']
+
+        if self.phase == mafl.phase.Night:
+            if not 'night' in self.timers:
+                self.timers['night'] = time.time() + 180
+            timer = self.timers['night']
+            remaining = int(timer - time.time())
+            if remaining > 0 and remaining in (173,89,37,11):
+                self.message(None, "night ends in %d seconds"%(remaining))
+            if time.time() > timer:
+                self.message(None, "night timed out")
+                self.nextphase()
+                del self.timers['night']
 
     def livingmsg(self):
         msg = "living players: %s"% ", ".join([x.name for x in self.living()])
@@ -345,6 +366,9 @@ class State:
 
         return ret
 
+    def majority(self):
+        return int(len(self.living()) / 2)
+
     def vote(self, voter, targets):
         print("vote",voter,targets)
         # unvote first
@@ -362,17 +386,21 @@ class State:
             else:
                 self.votes[target] = [voter]
 
-            if len(self.votes[target]) > int(len(self.living()) / 2):
+            if len(self.votes[target]) > self.majority():
                 self.enqueue(mafl.actions.Lynch(voter, [target]))
                 lynched = True
         if lynched:
             self.nextphase()
 
     def votecount(self):
-        for k,v in self.votes.items():
-            voters = [self.playerbyslot(x).name for x in self.votes[k]]
-            wagon = "%s (%d) - %s" % (self.playerbyslot(k).name, len(voters), ', '.join(voters))
-            self.message(None, wagon)
+        if time.time() > self.lastvc + 10:
+            self.lastvc = time.time()
+
+            self.message(None, "Vote count: %d to lynch"%(self.majority()+1))
+            for k,v in self.votes.items():
+                voters = [self.playerbyslot(x).name for x in self.votes[k]]
+                wagon = "%s (%d) - %s" % (self.playerbyslot(k).name, len(voters), ', '.join(voters))
+                self.message(None, wagon)
 
     def replace(self, p1, p2):
         slot = self.slotbyname(p1)

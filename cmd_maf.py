@@ -78,6 +78,10 @@ def run(bot, command, to, who, args):
 
     elif to and to[0] == "#" and command == "%start":
         state.start(to)
+    elif to and to[0] == "#" and command == "%wait":
+        state.wait()
+    elif to and to[0] == "#" and command == "%go":
+        state.go()
 
     elif command == "%dump":
         print(dumper.dump(state))
