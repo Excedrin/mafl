@@ -1,7 +1,7 @@
 import copy
 class Actor:
     def __init__(self):
-        self.abilities = { }
+        self.abilities = {}
         self.acted = False
 
     def getability(self, name):

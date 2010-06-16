@@ -53,7 +53,7 @@ class Mafia(Faction):
         alive = state.living()
         members = list(filter(lambda x: x.faction==self, alive))
         memberstr = ', '.join([x.name for x in members])
-        return "%s: members %s, you win if you have majority." %(self.name, memberstr)
+        return "%s: members ( %s ), you win if you have majority." %(self.name, memberstr)
 
 class Cult(Faction):
     name = "cult"
@@ -68,4 +68,4 @@ class Cult(Faction):
         alive = state.living()
         members = list(filter(lambda x: x.faction==self, alive))
         memberstr = ', '.join([x.name for x in members])
-        return "%s: members %s, you win if you have majority." %(self.name, memberstr)
+        return "%s: members ( %s ), you win if you have majority." %(self.name, memberstr)

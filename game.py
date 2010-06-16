@@ -153,7 +153,7 @@ class Game:
 
     def reset(self):
         channel = self.channel
-        self.__init__()
+        self.__init__(self.rng)
         self.channel = channel
 
     def playernames(self):

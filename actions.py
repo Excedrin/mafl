@@ -123,6 +123,23 @@ class Poison(Action):
 
         return state.queue
 
+class Recruit(Action):
+    name = "recruit"
+    priority = 75
+
+    def resolve(self, state):
+        state.resolved(self)
+        actor = state.playerbyslot(self.actor)
+
+        for slot in self.targets:
+            player = state.playerbyslotbus(slot)
+            player.faction = actor.faction
+
+            state.message(player.name, player.rolepm(state))
+            state.resetvotes()
+
+        return state.queue
+
 class Copy(Action):
     name = "copy"
     priority = 10

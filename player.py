@@ -11,20 +11,27 @@ class Player(Actor):
     def __str__(self):
         return "Player %s" %self.name
 
+    def factionabilities(self):
+        if self.faction:
+            return self.faction.abilities.values()
+        else:
+            return []
+
     def allabilities(self):
         abilities = []
 
-        if self.faction:
-            for _,ability in self.faction.abilities.items():
-                abilities.append(ability)
-        for _,ability in self.abilities.items():
-            abilities.append(ability)
+        abilities.extend(self.factionabilities())
+        abilities.extend(self.abilities.values())
 
         return abilities
 
     def rolepm(self, state):
-        abilitystr = ", ".join(map(str, self.allabilities()))
-        return "%s - %s" %(self.faction.rolepm(state), abilitystr)
+        fa = self.factionabilities()
+        abis = []
+        if fa:
+            abis.append("group abilities { %s }" % ", ".join(map(str, fa)) )
+        abis.append("abilities { %s }" % ", ".join(map(str, self.abilities.values())) )
+        return "%s - %s" %(self.faction.rolepm(state), ' '.join(abis))
 
     def flip(self):
         return self.faction.name

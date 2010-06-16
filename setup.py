@@ -8,6 +8,7 @@ class Setup:
     def setroles(self):
         town = mafl.faction.Town()
         maf = mafl.faction.Mafia()
+        cult = mafl.faction.Cult()
         survivor = mafl.faction.Survivor()
 
         self.rng.shuffle(self.players)
