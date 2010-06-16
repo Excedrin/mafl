@@ -1,3 +1,6 @@
+import traceback
+from difflib import SequenceMatcher
+
 import copy
 import random
 
@@ -32,8 +35,13 @@ class Game:
         self.timers = timers.Timers()
         self.lastvc = 0
 
+        self.fake = {}
+
     def message(self, who, message):
-        self.out.append((who, message))
+        if who in self.fake:
+            self.out.append((self.fake[who], "(%s) %s"%(who, message)))
+        else:
+            self.out.append((who, message))
 ####
     def slotbyname(self, name):
         if name in self.slot:
@@ -64,7 +72,7 @@ class Game:
     def playerbyname(self, name):
         slot = self.slotbyname(name)
         if slot is None:
-#            print("no player",name)
+            print("no player",name)
             return None
         else:
             return self.playerbyslot(slot)
@@ -239,13 +247,17 @@ class Game:
                 self.message(None, "night timed out")
                 self.nextphase()
 
-    def livingmsg(self):
+    def phasemsg(self, who=None):
+        self.message(who, self.phase.name)
+
+    def livingmsg(self, who=None):
         msg = "living players: %s"% ", ".join([x.name for x in self.living()])
-        self.message(None, msg)
+        self.message(who, msg)
 
     def rolepm(self, name):
         player = self.playerbyname(name)
-        self.message(name, player.rolepm(self))
+        if player:
+            self.message(name, player.rolepm(self))
 
     def delay(self, phases, action):
         self.delayqueue.enqueue((phases - 1, action))
@@ -324,7 +336,7 @@ class Game:
 
             self.phase = self.newphase
             if self.phase != mafl.phase.Done:
-                self.message(None, self.phase.name)
+                self.phasemsg()
                 self.livingmsg()
 
             self.resetuses()
@@ -385,6 +397,9 @@ class Game:
             self.slot[p2] = slot
             del self.slot[p1]
             self.name[slot] = p2
+
+            if p1 in self.fake:
+                self.fake[p2] = self.fake[p1]
             self.message(None, "replaced %s with %s"%(p1,p2))
         else:
             self.message(None, "didn't find player %s"%p1)
@@ -398,3 +413,51 @@ class Game:
             self.message(None, "didn't find player %s"%p1)
         elif not newrole:
             self.message(None, "didn't find role %s"%rolename)
+
+    def fuzzy(self, tryname):
+        best = 0
+        match = None
+        names = self.playernames()
+        if tryname in names:
+            return (tryname, 1, tryname)
+        
+        for name in filter(lambda x:len(x) > 1, names):
+            ratio = SequenceMatcher(None, tryname.lower(), name.lower()).ratio()
+            if ratio > best:
+                best = ratio
+                match = name
+        return (tryname, best, match)
+
+    def cleanargs(self, args):
+        return [self.fuzzy(x) for x in args]
+
+    def tryability(self, who, ability, args):
+        player = self.playerbyname(who)
+        if player and player.living:
+            print("found player:",who,player)
+            try:
+                cleaned = []
+                mangled = []
+                for tryname, best, match in self.cleanargs(args):
+                    if best > 0.6:
+                        print("fuzzy match",tryname,best,match)
+                        cleaned.append(match)
+                    else:
+                        mangled.append(tryname)
+
+                if mangled:
+                    self.message(who, "%s not found" %mangled)
+                else:
+                    if player.faction and ability in player.faction.abilities:
+                        (res, msg) = player.faction.abilities[ability].use(self, player, cleaned)
+                        # faction ability failed, now try player ability
+                        if not res and ability in player.abilities:
+                            (res, msg) = player.abilities[ability].use(self, player, cleaned)
+                        self.message(who, msg)
+                    elif ability in player.abilities:
+                        (res, msg) = player.abilities[ability].use(self, player, cleaned)
+                        self.message(who, msg)
+
+            except Exception as e:
+                print("exception trying to handle player ability: %s\n%s\n" %(ability, e))
+                traceback.print_exc()

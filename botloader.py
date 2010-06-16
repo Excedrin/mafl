@@ -5,10 +5,35 @@ reloader.enable()
 
 import bot
 
-#b = bot.Bot('irc.foonetic.net', 6667, 'mafl', 'mafl', 'mafl')
-b = bot.Bot('localhost', 6668, 'mafl', 'mafl', 'mafl')
-#b = bot.Bot('irc.dal.net', 6667, 'mafl', 'mafl', 'mafl')
-#b = bot.Bot('irc.synirc.org', 6667, 'mafl', 'mafl', 'mafl')
+from configparser import SafeConfigParser
+
+####
+####
+####
+parser = SafeConfigParser()
+parser.read('mafl.ini')
+
+def getcfg(section, key, default):
+    try:
+        return parser.get(section, key)
+    except:
+        return default
+
+cfg = {}
+
+for k in parser.options('mafl'):
+    cfg[k] = getcfg('mafl', k, None)
+
+if 'network' in cfg:
+    for k in parser.options(cfg['network']):
+        cfg[k] = parser.get(cfg['network'], k, cfg[k])
+
+####
+####
+####
+
+b = bot.Bot(cfg['server'], int(cfg['port']), cfg['nick'], cfg['user'], cfg['realname'])
+
 quit = False
 
 def reload(m):

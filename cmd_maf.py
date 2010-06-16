@@ -1,26 +1,5 @@
 import game
-
-import traceback
-from difflib import SequenceMatcher
-
 import dumper
-
-def fuzzy(state, tryname):
-    best = 0
-    match = None
-    names = state.playernames()
-    if tryname in names:
-        return (tryname, 1, tryname)
-    
-    for name in filter(lambda x:len(x) > 1, names):
-        ratio = SequenceMatcher(None, tryname.lower(), name.lower()).ratio()
-        if ratio > best:
-            best = ratio
-            match = name
-    return (tryname, best, match)
-
-def cleanargs(state, args):
-    return [fuzzy(state, x) for x in args]
 
 def rungame(bot, to, who, state):
     result = state.run()
@@ -62,7 +41,8 @@ def run(bot, command, to, who, args):
     elif command == "%force":
         if len(args) >= 2:
             run(bot, args[1], to, args[0], args[2:])
-#        state.newplayer(args[0], None)
+        if args[1] == '%join':
+            state.fake[args[0]] = who
 
     elif command == "%living":
         state.livingmsg()
@@ -94,35 +74,7 @@ def run(bot, command, to, who, args):
     elif command and (command[0] == '%') or (to and to[0] != "#"):
         ability = command[1:]
         print("args:",args)
-        player = state.playerbyname(who)
-        if player and player.living:
-            print("found player:",who,player)
-            try:
-                cleaned = []
-                mangled = []
-                for tryname, best, match in cleanargs(state, args):
-                    if best > 0.6:
-                        print("fuzzy match",tryname,best,match)
-                        cleaned.append(match)
-                    else:
-                        mangled.append(tryname)
-
-                if mangled:
-                    bot.reply(to, who, "%s not found" %mangled)
-                else:
-                    if player.faction and ability in player.faction.abilities:
-                        (res, msg) = player.faction.abilities[ability].use(state, player, cleaned)
-                        # faction ability failed, now try player ability
-                        if not res and ability in player.abilities:
-                            (res, msg) = player.abilities[ability].use(state, player, cleaned)
-                        bot.privmsg(who, msg)
-                    elif ability in player.abilities:
-                        (res, msg) = player.abilities[ability].use(state, player, cleaned)
-                        bot.privmsg(who, msg)
-
-            except Exception as e:
-                print("exception trying to handle player ability: %s\n%s\n" %(ability, e))
-                traceback.print_exc()
+        state.tryability(who, ability, args)
 
     rungame(bot, to, who, state)
 

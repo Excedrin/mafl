@@ -15,7 +15,8 @@ class Ability:
         return (issubclass(self.phase, state.phase)
                 and ((not self.used
                       and (self.uses == None
-                          or self.uses > 0))
+                          or self.uses > 0)
+                      and not self.auto)
                     or self.free))
 # free actions shouldn't cause a phase to not end when they're unused
 # but if they don't, day would instantly end ;_;
@@ -34,8 +35,9 @@ class Ability:
         self.used = False
 
     def use(self, state, player, targets):
-        err = ""
-        if not self.free and self.used:
+        if self.auto:
+            err = "%s is an auto action" % self.action.name
+        elif not self.free and self.used:
             err = "%s has already been used" % self.action.name
         elif not self.free and self.uses != None and self.uses < 1:
             err = "%s has no uses left" % self.action.name
