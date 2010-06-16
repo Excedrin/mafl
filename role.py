@@ -10,7 +10,7 @@ class Role:
 class Townie(Role):
     def setrole(actor):
 #        Role.setrole(actor)
-        actor.addability(Ability(Vote, Day, free=True))
+        actor.addability(Ability(Vote, Day, free=True, public=True))
 
 class Vigilante(Role):
     def setrole(actor):

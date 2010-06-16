@@ -443,7 +443,7 @@ class Game:
     def cleanargs(self, args):
         return [self.fuzzy(x) for x in args]
 
-    def tryability(self, who, ability, args):
+    def tryability(self, who, public, ability, args):
         player = self.playerbyname(who)
         if player and player.living:
             print("found player:",who,player)
@@ -461,13 +461,13 @@ class Game:
                     self.message(who, "%s not found" %mangled)
                 else:
                     if player.faction and ability in player.faction.abilities:
-                        (res, msg) = player.faction.abilities[ability].use(self, player, cleaned)
+                        (res, msg) = player.faction.abilities[ability].use(self, public, player, cleaned)
                         # faction ability failed, now try player ability
                         if not res and ability in player.abilities:
-                            (res, msg) = player.abilities[ability].use(self, player, cleaned)
+                            (res, msg) = player.abilities[ability].use(self, public, player, cleaned)
                         self.message(who, msg)
                     elif ability in player.abilities:
-                        (res, msg) = player.abilities[ability].use(self, player, cleaned)
+                        (res, msg) = player.abilities[ability].use(self, public, player, cleaned)
                         self.message(who, msg)
 
             except Exception as e:

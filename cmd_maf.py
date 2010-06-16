@@ -26,6 +26,8 @@ def tick(bot):
 def run(bot, command, to, who, args):
     state = bot.get('maf')
 
+    public = to and to[0] == "#"
+
     if command == "%reset":
         state = None
 
@@ -67,21 +69,21 @@ def run(bot, command, to, who, args):
         if len(args) == 2:
             state.replace(args[0], args[1])
 
-    elif to and to[0] == "#" and command == "%start":
+    elif public and command == "%start":
         state.start(to)
-    elif to and to[0] == "#" and command == "%wait":
+    elif public and command == "%wait":
         state.wait()
-    elif to and to[0] == "#" and command == "%go":
+    elif public and command == "%go":
         state.go(args[0] if args else None)
 
     elif command == "%dump":
         dumper.max_depth = 9
         print(dumper.dump(state))
 
-    elif command and (command[0] == '%') or (to and to[0] != "#"):
-        ability = command[1:]
+    elif command and ((command[0] == '%') or not public):
+        ability = command[1:] if command[0] == '%' else command
         print("args:",args)
-        state.tryability(who, ability, args)
+        state.tryability(who, public, ability, args)
 
     rungame(bot, to, who, state)
 

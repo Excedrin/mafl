@@ -1,7 +1,7 @@
 import target
 
 class Ability:
-    def __init__(self, action, phase, uses=None, free=False, auto=False, args={}):
+    def __init__(self, action, phase, uses=None, free=False, auto=False, public=False, args={}):
         self.action = action
         self.phase = phase
         self.uses = uses
@@ -9,6 +9,7 @@ class Ability:
         self.free = free
         self.auto = auto
         self.args = args
+        self.public = public
 
 # it's the right phase, and (an unused action, with uses left, or a free action)
     def usable(self, state):
@@ -34,8 +35,11 @@ class Ability:
     def reset(self):
         self.used = False
 
-    def use(self, state, player, targets):
-        if self.auto:
+    def use(self, state, public, player, targets):
+        if self.public != public:
+            err = "%s must be used %s" % (self.action.name,
+                "publicly" if self.public else "privately")
+        elif self.auto:
             err = "%s is an auto action" % self.action.name
         elif not self.free and self.used:
             err = "%s has already been used" % self.action.name
