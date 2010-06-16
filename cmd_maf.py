@@ -5,22 +5,26 @@ import dumper
 
 rng = random.Random()
 
-def rungame(bot, to, who, state):
+def rungame(bot, public, to, who, state):
+    channel = state.channel
+    if not channel and public:
+        channel = to
+
     result = state.run()
     for target, l in result:
         print("res:",target,l)
         if target:
-            bot.privmsg(target, l)
-        elif state.channel:
-            bot.privmsg(state.channel, l)
+            bot.notice(target, l)
+        elif public:
+            bot.privmsg(channel, l)
         else:
-            bot.reply(to, who, l)
+            bot.notice(who, l)
 
 def tick(bot):
     state = bot.get('maf')
     if state:
         state.tick()
-        rungame(bot, state.channel, state.channel, state)
+        rungame(bot, True, None, None, state)
     bot.store('maf', state)
 
 def run(bot, command, to, who, args):
@@ -85,6 +89,6 @@ def run(bot, command, to, who, args):
         print("args:",args)
         state.tryability(who, public, ability, args)
 
-    rungame(bot, to, who, state)
+    rungame(bot, public, to, who, state)
 
     bot.store('maf', state)
