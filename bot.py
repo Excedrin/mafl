@@ -10,6 +10,8 @@ import cmd_version
 import cmd_time
 import cmd_maf
 
+import random
+
 def clean(str):
     return str[1:]
 
@@ -81,6 +83,8 @@ class Bot():
             self.state = {}
 
             self.joined = False
+
+            self.rng = random.Random()
 
 # ratelimit crap
             self.lasttime = 0

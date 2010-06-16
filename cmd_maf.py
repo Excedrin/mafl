@@ -1,5 +1,9 @@
+import random
+
 import game
 import dumper
+
+rng = random.Random()
 
 def rungame(bot, to, who, state):
     result = state.run()
@@ -26,10 +30,13 @@ def run(bot, command, to, who, args):
         state = None
 
     if state == None:
-        state = game.Game()
+        state = game.Game(rng)
 
     if command == "%join":
         state.join(who)
+
+    elif command == "%done":
+        state.done(who)
 
     elif command == "%setrole":
         if len(args) == 2:

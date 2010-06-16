@@ -1,8 +1,8 @@
-import random
 import mafl
 
 class Setup:
-    def __init__(self, players):
+    def __init__(self, rng, players):
+        self.rng = rng
         self.players = list(players)
 
     def setroles(self):
@@ -10,7 +10,7 @@ class Setup:
         maf = mafl.faction.Mafia()
         survivor = mafl.faction.Survivor()
 
-        random.shuffle(self.players)
+        self.rng.shuffle(self.players)
 
         if len(self.players) < 3:
             return False
@@ -27,7 +27,7 @@ class Setup:
             p.faction = maf
             mafl.role.Townie.setrole(p)
 
-            if random.choice([True,False]): # 50/50 a doctor
+            if self.rng.choice([True,False]): # 50/50 a doctor
                 p = self.players.pop()
                 p.faction = town
                 mafl.role.Doctor.setrole(p)
@@ -40,7 +40,7 @@ class Setup:
             p.faction = maf
             mafl.role.Townie.setrole(p)
 
-            if random.choice([True,False]):
+            if self.rng.choice([True,False]):
                 p = self.players.pop()
                 p.faction = town
                 mafl.role.Doctor.setrole(p)
@@ -54,7 +54,7 @@ class Setup:
             p = self.players.pop()
             p.faction = maf
 
-            if random.choice([True,False]):
+            if self.rng.choice([True,False]):
                 p = self.players.pop()
                 p.faction = town
                 mafl.role.Doctor.setrole(p)
@@ -72,12 +72,12 @@ class Setup:
             p = self.players.pop()
             p.faction = maf
 
-            if random.choice([True,False]):
+            if self.rng.choice([True,False]):
                 p = self.players.pop()
                 p.faction = town
                 mafl.role.Doctor.setrole(p)
 
-            if random.choice([True,False]):
+            if self.rng.choice([True,False]):
                 p = self.players.pop()
                 p.faction = town
                 mafl.role.Cop.setrole(p)

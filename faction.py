@@ -54,3 +54,18 @@ class Mafia(Faction):
         members = list(filter(lambda x: x.faction==self, alive))
         memberstr = ', '.join([x.name for x in members])
         return "%s: members %s, you win if you have majority." %(self.name, memberstr)
+
+class Cult(Faction):
+    name = "cult"
+    def __init__(self, number=1):
+        Faction.__init__(self)
+        self.addability(mafl.ability.Ability(mafl.actions.Recruit, mafl.phase.Night))
+    def win(self, state, player):
+        alive = state.living()
+        members = list(filter(lambda x: x.faction==self, alive))
+        return len(members) >= (len(alive) / 2)
+    def rolepm(self, state):
+        alive = state.living()
+        members = list(filter(lambda x: x.faction==self, alive))
+        memberstr = ', '.join([x.name for x in members])
+        return "%s: members %s, you win if you have majority." %(self.name, memberstr)

@@ -154,7 +154,6 @@ class Copy(Action):
 # the actual name
 
 class Bus(Action):
-
     name = "bus"
     priority = 12
 
@@ -398,7 +397,6 @@ class Antidote(Action):
         return newqueue
 
 class Redirect(Action):
-
     name = "redirect"
     priority = 15
 
@@ -420,7 +418,6 @@ class Redirect(Action):
         return newqueue
 
 class Track(Action):
-
     name = "track"
     priority = 90
 
@@ -441,7 +438,6 @@ class Track(Action):
         return state.queue
 
 class Watch(Track):
-
     name = "watch"
     priority = 90
 
@@ -465,7 +461,6 @@ class Watch(Track):
         return state.queue
 
 class Patrol(Track):
-
     name = "patrol"
     priority = 90
 

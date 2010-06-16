@@ -35,3 +35,12 @@ class Player(Actor):
                 if ability.usable(state):
                     return True
         return False
+
+    def done(self, state):
+        if self.living:
+            for ability in self.allabilities():
+                if ability.usable(state):
+                    print("setting %s used",ability.action.name)
+                    ability.used = True
+                else:
+                    print("%s isn't usable",ability.action.name)

@@ -20,3 +20,6 @@ class Timers:
 
     def expired(self, name):
         return self.remaining(name) < 0
+
+    def dec(self, name):
+        self.timers[name] -= 1

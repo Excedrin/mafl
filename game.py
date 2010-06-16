@@ -2,7 +2,6 @@ import traceback
 from difflib import SequenceMatcher
 
 import copy
-import random
 
 import time
 import timers
@@ -10,7 +9,7 @@ import timers
 import mafl
 
 class Game:
-    def __init__(self):
+    def __init__(self, rng):
         self.channel = None
 
         self.queue = mafl.Mqueue()
@@ -37,6 +36,8 @@ class Game:
 
         self.fake = {}
 
+        self.rng = rng
+
     def message(self, who, message):
         if who in self.fake:
             self.out.append((self.fake[who], "(%s) %s"%(who, message)))
@@ -58,13 +59,13 @@ class Game:
 
     def bussedslot(self, slot):
         if slot in self.bus:
-            return random.choice(self.bus[slot])
+            return rng.choice(self.bus[slot])
         else:
             return slot
 
     def playerbyslotbus(self, slot):
         if slot in self.bus:
-            busedslot = random.choice(self.bus[slot])
+            busedslot = rng.choice(self.bus[slot])
             return self.playerbyslot(busedslot)
         else:
             return self.playerbyslot(slot)
@@ -208,14 +209,14 @@ class Game:
 
             self.nextphase()
 
-            self.timers.settimer('start', 300)
-            self.message(None, "game starts in %d seconds"%300)
+            self.timers.settimer('start', 307)
+            self.message(None, "game starts in %d seconds"%307)
 
     def wait(self):
         if self.phase == mafl.phase.Signups:
-            if self.timers.remaining('start') < 60:
-                self.timers.settimer('start', 60)
-                self.message(None, "game start delayed %d seconds"%60)
+            if self.timers.remaining('start') < 61:
+                self.timers.settimer('start', 61)
+                self.message(None, "game start delayed %d seconds"%61)
 
     def go(self, now):
         if self.phase == mafl.phase.Signups:
@@ -229,22 +230,27 @@ class Game:
             remaining = self.timers.remaining('start')
             if remaining < 0:
                 self.nextphase()
-            elif remaining in (30,10):
+            elif remaining in (31,11):
+                self.timers.dec('start')
                 self.message(None, "game starts in %d seconds"%(remaining))
 
         if self.phase == mafl.phase.Day:
-            self.timers.setfirst('vote', 180)
+            self.timers.setfirst('vote', 181)
             if self.timers.expired('vote'):
                 self.votecount()
-                self.timers.settimer('vote', 180)
+                self.timers.settimer('vote', 181)
 
         if self.phase == mafl.phase.Night:
-            self.timers.setfirst('night', 180)
+            self.timers.setfirst('night', 181)
             remaining = self.timers.remaining('night')
             if remaining in (173,89,37,11):
+                self.timers.dec('night')
                 self.message(None, "night ends in %d seconds"%(remaining))
             if remaining < 0:
                 self.message(None, "night timed out")
+                self.nextphase()
+
+            if self.timers.expired('randomize'):
                 self.nextphase()
 
     def phasemsg(self, who=None):
@@ -258,6 +264,12 @@ class Game:
         player = self.playerbyname(name)
         if player:
             self.message(name, player.rolepm(self))
+
+    def done(self, name):
+        player = self.playerbyname(name)
+        if player:
+            player.done(self)
+            self.message(name, 'OK')
 
     def delay(self, phases, action):
         self.delayqueue.enqueue((phases - 1, action))
@@ -296,8 +308,8 @@ class Game:
                 if player.unused(self):
                     unused = True
             if not unused:
-#                print("state.run, found no unused actions")
-                self.nextphase()
+                # anti-meta timer (range is maybe too small)
+                self.timers.setfirst('randomize', self.rng.randint(3,13))
 
             if self.phase.instant:
                 self.resolve()
@@ -317,7 +329,7 @@ class Game:
             self.timers = timers.Timers()
 
             if self.phase == mafl.phase.Signups:
-                self.setup = mafl.setup.Setup(self.players)
+                self.setup = mafl.setup.Setup(self.rng, self.players)
                 if self.setup.setroles():
                     print("sending roles")
                     # send role pms
