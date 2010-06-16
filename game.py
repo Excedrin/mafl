@@ -122,7 +122,7 @@ class Game:
         for name, slot in self.slot.items():
             player = self.playerbyslot(slot)
             for abi in player.allabilities():
-                abi.used = False
+                abi.reset()
 
     def resetout(self):
         self.out = []

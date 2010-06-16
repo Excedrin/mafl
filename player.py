@@ -32,6 +32,6 @@ class Player(Actor):
     def unused(self, state):
         if self.living:
             for ability in self.allabilities():
-                if ability.phase is state.phase and not ability.used:
+                if ability.usable(state):
                     return True
         return False

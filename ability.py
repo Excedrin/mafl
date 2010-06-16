@@ -10,13 +10,23 @@ class Ability:
         self.auto = auto
         self.args = args
 
+# it's the right phase, and (an unused action, with uses left, or a free action)
+    def usable(self, state):
+        return (issubclass(self.phase, state.phase)
+                and ((not self.used
+                      and (self.uses == None
+                          or self.uses > 0))
+                    or self.free))
+# free actions shouldn't cause a phase to not end when they're unused
+# but if they don't, day would instantly end ;_;
+
     def __str__(self):
         # instantiate an action to get it to format itself
         desc = [str(self.action(0,[],self.args)), "(%s phase)" % self.phase.name]
         if self.auto:   
             desc.insert(0, "auto")
 
-        if self.uses:
+        if self.uses != None:
             desc.insert(0, "%d use" % self.uses)
         return(" ".join(desc))
 
@@ -27,7 +37,7 @@ class Ability:
         err = ""
         if not self.free and self.used:
             err = "%s has already been used" % self.action.name
-        elif not self.free and self.uses and self.uses < 1:
+        elif not self.free and self.uses != None and self.uses < 1:
             err = "%s has no uses left" % self.action.name
         elif not issubclass(self.phase, state.phase):
             err = "%s can't be used during this phase" % self.action.name
