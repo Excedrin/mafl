@@ -344,9 +344,9 @@ class Hide(Action):
     def resolve(self, state):
         state.resolved(self)
 
+        newqueue = Mqueue()
         for target in self.targets:
             # all actions targeting a hidden player fail
-            newqueue = Mqueue()
             for act in state.queue:
                 if act.targets[0] != target:
                     newqueue.enqueue(act)
