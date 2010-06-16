@@ -13,6 +13,7 @@ class Game:
         self.queue = mafl.Mqueue()
         self.resqueue = mafl.Mqueue()
         self.autoqueue = mafl.Mqueue()
+        self.delayqueue = mafl.Mqueue()
 
         self.bus = {}
 
@@ -99,16 +100,20 @@ class Game:
     def resolved(self, action):
         self.resqueue.enqueue(action)
 
-    def resolve(self):
+    def resolve(self, verbose=False):
         if self.queue:
             self.queue.merge(self.autoqueue)
-#            print("resolve")
+            if verbose:
+                print("resolve")
             while self.queue:
-#                print("resolve q:", self.queue)
+                if verbose:
+                    print("resolve q:", self.queue)
                 act = self.queue.pop()
-#                print("resolve act:", act)
+                if verbose:
+                    print("resolve act:", act)
                 self.queue = act.resolve(self)
-#            print("resolve done")
+            if verbose:
+                print("resolve done")
 
     def resetvotes(self):
         self.votes = {}
@@ -147,6 +152,14 @@ class Game:
 
     def names(self, slots):
         return [self.name[x] for x in slots]
+
+    def livingslots(self):
+        living = []
+        for name, slot in self.slot.items():
+            player = self.playerbyslot(slot)
+            if player.living:
+                living.append(slot)
+        return living
 
     def living(self):
         living = []
@@ -196,17 +209,10 @@ class Game:
                 self.timers.settimer('start', 60)
                 self.message(None, "game start delayed %d seconds"%60)
 
-    def reallygo(self):
-        self.setup = mafl.setup.Setup(self.players)
-        if not self.setup.setroles():
-            self.message("Failed to assign roles")
-            self.reset()
-        self.nextphase()
-
     def go(self, now):
         if self.phase == mafl.phase.Signups:
             if now == "now":
-                self.reallygo()
+                self.nextphase()
             else:
                 self.timers.settimer('start', 11)
 
@@ -214,7 +220,7 @@ class Game:
         if self.phase == mafl.phase.Signups:
             remaining = self.timers.remaining('start')
             if remaining < 0:
-                self.reallygo()
+                self.nextphase()
             elif remaining in (30,10):
                 self.message(None, "game starts in %d seconds"%(remaining))
 
@@ -240,6 +246,21 @@ class Game:
     def rolepm(self, name):
         player = self.playerbyname(name)
         self.message(name, player.rolepm(self))
+
+    def delay(self, phases, action):
+        self.delayqueue.enqueue((phases - 1, action))
+        
+    def undelay(self):
+        newqueue = mafl.Mqueue()
+        while self.delayqueue:
+            (phases, action) = self.delayqueue.pop()
+            print("undelay:",phases)
+            if phases <= 0:
+                self.queue.enqueue(action)
+            else:
+                newqueue.enqueue((phases - 1, action))
+
+        self.delayqueue = newqueue
 
     def useautoabilities(self):
         for player in self.players:
@@ -280,12 +301,22 @@ class Game:
 
         # phase changed!
         if self.phase != self.newphase:
+            # reset timers
+            self.timers = timers.Timers()
+
             if self.phase == mafl.phase.Signups:
-                print("sending roles")
-                # send role pms
-                for name, slot in self.slot.items():
-                    player = self.playerbyslot(slot)
-                    self.message(name, player.rolepm(self))
+                self.setup = mafl.setup.Setup(self.players)
+                if self.setup.setroles():
+                    print("sending roles")
+                    # send role pms
+                    for name, slot in self.slot.items():
+                        player = self.playerbyslot(slot)
+                        self.message(name, player.rolepm(self))
+                else:
+                    self.message("Failed to assign roles")
+                    self.reset()
+
+            self.undelay()
 
             # resolve the previous phase's actions,
             # must do this before enqueuing auto abilities
@@ -356,4 +387,14 @@ class Game:
             self.name[slot] = p2
             self.message(None, "replaced %s with %s"%(p1,p2))
         else:
-            self.message(None, "didn't find %s"%p1)
+            self.message(None, "didn't find player %s"%p1)
+
+    def setrole(self, p1, rolename):
+        newrole = mafl.role.roles.get(rolename, None)
+        player = self.playerbyname(p1)
+        if newrole and player:
+            newrole.setrole(player)
+        elif not player:
+            self.message(None, "didn't find player %s"%p1)
+        elif not newrole:
+            self.message(None, "didn't find role %s"%rolename)

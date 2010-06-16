@@ -1,3 +1,4 @@
+import copy
 class Actor:
     def __init__(self):
         self.abilities = { }
@@ -10,7 +11,7 @@ class Actor:
             return None
 
     def addability(self, ability):
-        self.abilities[ability.action.name] = ability
+        self.abilities[ability.action.name] = copy.deepcopy(ability)
 
     def removeability(self, ability):
         del abilities[ability.action.name]

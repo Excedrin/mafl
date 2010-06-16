@@ -2,91 +2,139 @@ from ability import Ability
 from actions import *
 from phase import *
 
+from target import *
+
 class Role:
-    def setrole(self, actor):
-        actor.role = self
+    pass
 
 class Townie(Role):
-    def setrole(self, actor):
-        Role.setrole(self, actor)
+    def setrole(actor):
+#        Role.setrole(actor)
         actor.addability(Ability(Vote, Day, free=True))
 
-class Vigilante(Townie):
-    def setrole(self, actor):
-        Townie.setrole(self, actor)
+class Vigilante(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
         actor.addability(Ability(Kill, Night))
 
-class DayVigilante(Townie):
-    def setrole(self, actor):
-        Townie.setrole(self, actor)
+class DayVigilante(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
         actor.addability(Ability(Kill, Day))
 
-class OneShotVigilante(Townie):
-    def setrole(self, actor):
-        Townie.setrole(self, actor)
+class OneShotVigilante(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
         actor.addability(Ability(Kill, Night, uses=1))
 
-class Cop(Townie):
-    def setrole(self, actor):
-        Townie.setrole(self, actor)
+class Cop(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
         actor.addability(Ability(Inspect, Night))
 
-class DayCop(Townie):
-    def setrole(self, actor):
-        Townie.setrole(self, actor)
+class DayCop(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
         actor.addability(Ability(Inspect, Day))
 
-class OneShotCop(Townie):
-    def setrole(self, actor):
-        Townie.setrole(self, actor)
+class OneShotCop(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
         actor.addability(Ability(Inspect, Night, uses=1))
 
-class Doctor(Townie):
-    def setrole(self, actor):
-        Townie.setrole(self, actor)
+class Doctor(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
         actor.addability(Ability(Protect, Night))
 
-class BusDriver(Townie):
-    def setrole(self, actor):
-        Townie.setrole(self, actor)
+class BusDriver(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
         actor.addability(Ability(Bus, Night))
 
-class Roleblocker(Townie):
-    def setrole(self, actor):
-        Townie.setrole(self, actor)
+class Roleblocker(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
         actor.addability(Ability(Block, Night))
 
-class Redirecter(Townie):
-    def setrole(self, actor):
-        Townie.setrole(self, actor)
+class Redirecter(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
         actor.addability(Ability(Redirect, Night))
 
-class Tracker(Townie):
-    def setrole(self, actor):
-        Townie.setrole(self, actor)
+class Tracker(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
         actor.addability(Ability(Track, Night))
 
-class Watcher(Townie):
-    def setrole(self, actor):
-        Townie.setrole(self, actor)
+class Watcher(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
         actor.addability(Ability(Watch, Night))
 
-class NightWatchman(Townie):
-    def setrole(self, actor):
-        Townie.setrole(self, actor)
+class NightWatchman(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
         actor.addability(Ability(Patrol, Night))
 
-class DoubleVoter(Townie):
-    def setrole(self, actor):
-        Role.setrole(self, actor)
-        actor.addability(Ability(Vote, Day, free=True, args=[2] ))
+class DoubleVoter(Role):
+    def setrole(actor):
+#        Role.setrole(actor)
+        actor.addability(Ability(Vote, Day, free=True, args={'maxvotes':2} ))
 
-class NonVoter(Townie):
-    def setrole(self, actor):
-        Role.setrole(self, actor)
-        actor.addability(Ability(Vote, Day, free=True, args=[0] ))
+class NonVoter(Role):
+    def setrole(actor):
+#        Role.setrole(actor)
+        actor.addability(Ability(Vote, Day, free=True, args={'maxvotes':0} ))
 
-class ParanoidGunOwner(Townie):
-    def setrole(self, actor):
-        Townie.setrole(self, actor)
-        actor.addability(Ability(Reflex, Any, auto=True, args=[Kill(0, [])] ))
+class ParanoidGunOwner(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Reflex, Any, auto=True, args={'action':Kill(0, [])} ))
+
+class Eavesdropper(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Eavesdrop, Night))
+
+class Coward(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Hide, Night, uses=1, args={'target':Self}))
+
+class Ascetic(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Immune, Night, args={'not':0,'immune':Kill(0,[])}))
+
+class Godfather(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Immune, Night, args={'immune':Kill(0,[])}))
+
+class Delayer(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Delay, Night, args={'phases':2}))
+
+class Poisoner(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Poison, Day))
+
+class PoisonDoctor(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Antidote, Night))
+
+def init():
+    env = init.__globals__
+    env['roles'] = {}
+    for k,v in list(filter(lambda t:
+            type(t[1]) is type
+            and not t[1] is Role
+            and issubclass(t[1], Role),
+                env.items())):
+        env['roles'][k] = v
+
+init()

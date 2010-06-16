@@ -1,5 +1,7 @@
+import target
+
 class Ability:
-    def __init__(self, action, phase, uses=None, free=False, auto=False, args=[]):
+    def __init__(self, action, phase, uses=None, free=False, auto=False, args={}):
         self.action = action
         self.phase = phase
         self.uses = uses
@@ -34,9 +36,14 @@ class Ability:
                 self.used = True
                 if self.uses:
                     self.uses -= 1
-            slots = [state.slotbyname(x) for x in targets]
+
             actor = state.slotbyplayer(player)
+
+            targetresolver = self.args.get('targets', target.Target)
+            slots = targetresolver.gettargets(state, actor, targets)
+
             state.enqueue(self.action(actor, slots, self.args))
+
             return (True, "%s confirmed"%(self.action.name))
         return (False, err)
 

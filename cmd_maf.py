@@ -52,6 +52,10 @@ def run(bot, command, to, who, args):
     if command == "%join":
         state.join(who)
 
+    elif command == "%setrole":
+        if len(args) == 2:
+            state.setrole(args[0], args[1])
+
     elif command == "%role":
         state.rolepm(who)
 
@@ -84,13 +88,14 @@ def run(bot, command, to, who, args):
         state.go(args[0] if args else None)
 
     elif command == "%dump":
+        dumper.max_depth = 9
         print(dumper.dump(state))
 
     elif command and (command[0] == '%') or (to and to[0] != "#"):
         ability = command[1:]
         print("args:",args)
         player = state.playerbyname(who)
-        if player:
+        if player and player.living:
             print("found player:",who,player)
             try:
                 cleaned = []
