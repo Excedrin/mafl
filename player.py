@@ -25,13 +25,15 @@ class Player(Actor):
 
         return abilities
 
-    def rolepm(self, state):
+    def rolepm(self):
+        return "abilities { %s }" % ", ".join(map(str, self.abilities.values())) 
+
+    def fullrolepm(self, state):
+        farole = ""
         fa = self.factionabilities()
-        abis = []
         if fa:
-            abis.append("group abilities { %s }" % ", ".join(map(str, fa)) )
-        abis.append("abilities { %s }" % ", ".join(map(str, self.abilities.values())) )
-        return "%s - %s" %(self.faction.rolepm(state), ' '.join(abis))
+            farole = "group abilities { %s } " % ", ".join(map(str, fa))
+        return "%s - %s" %(self.faction.rolepm(state), farole + self.rolepm())
 
     def flip(self):
         return self.faction.name

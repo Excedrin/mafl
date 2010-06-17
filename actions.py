@@ -1,5 +1,4 @@
-from mafqueue import Mqueue
-
+import mafl
 import copy
 
 class Untrackable:
@@ -60,11 +59,13 @@ class Inspect(Action):
     def resolve(self, state):
         state.resolved(self)
 
+        default = mafl.sanity.Sane([mafl.faction.Mafia, mafl.faction.Town])
+        inspect = self.args.get('sanity', default)
+
         for slot in self.targets:
             target = state.playerbyslotbus(slot)
-            align = target.faction.name
 
-            msg = "%s is %s" % (target.name, align)
+            msg = target.name+" "+inspect.result(target)
             state.queue.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
 
         return state.queue
@@ -135,7 +136,7 @@ class Recruit(Action):
             player = state.playerbyslotbus(slot)
             player.faction = actor.faction
 
-            state.message(player.name, player.rolepm(state))
+            state.message(player.name, player.fullrolepm(state))
             state.resetvotes()
 
         return state.queue
@@ -151,7 +152,7 @@ class Copy(Action):
         dest = self.targets[1]
 #        print("copy src: %s dst: %s" %(source,dest))
 
-        newqueue = Mqueue()
+        newqueue = mafl.Mqueue()
         for act in state.queue:
             if act.actor == source:
                 newact = copy.deepcopy(act)
@@ -199,7 +200,7 @@ class Delay(Action):
     def resolve(self, state):
         state.resolved(self)
 
-        newqueue = Mqueue()
+        newqueue = mafl.Mqueue()
         for act in state.queue:
             if act.actor in [state.bussedslot(x) for x in self.targets]:
                 if act.args.get('delayed', False):
@@ -220,7 +221,7 @@ class Block(Action):
 
     def resolve(self, state):
         state.resolved(self)
-        newqueue = Mqueue()
+        newqueue = mafl.Mqueue()
 
         for act in state.queue:
             if not act.actor in [state.bussedslot(x) for x in self.targets]:
@@ -235,7 +236,7 @@ class Eavesdrop(Action, Untrackable):
 
     def resolve(self, state):
         state.resolved(self)
-        newqueue = Mqueue()
+        newqueue = mafl.Mqueue()
         for act in state.queue:
             for target in self.targets:
                 if isinstance(act, Message) and target in act.targets:
@@ -269,7 +270,7 @@ class Guard(Action):
 
         killfound = False
         for target in self.targets:
-            newqueue = Mqueue()
+            newqueue = mafl.Mqueue()
             for act in state.queue:
                 if killfound or (not (isinstance(act, Kill) and target in act.targets)):
                     newqueue.enqueue(act)
@@ -304,7 +305,7 @@ class Immune(Action):
         else:
             operator = lambda x: x
 
-        newqueue = Mqueue()
+        newqueue = mafl.Mqueue()
         for act in state.queue:
             for target in self.targets:
                 if target in act.targets:
@@ -360,7 +361,7 @@ class Hide(Action):
     def resolve(self, state):
         state.resolved(self)
 
-        newqueue = Mqueue()
+        newqueue = mafl.Mqueue()
         for target in self.targets:
             # all actions targeting a hidden player fail
             for act in state.queue:
@@ -376,7 +377,7 @@ class Protect(Action):
         state.resolved(self)
 
         killfound = False
-        newqueue = Mqueue()
+        newqueue = mafl.Mqueue()
 
         for target in self.targets:
             for act in state.queue:
@@ -397,7 +398,7 @@ class Antidote(Action):
         state.resolved(self)
 
         killfound = False
-        newqueue = Mqueue()
+        newqueue = mafl.Mqueue()
 
         for target in self.targets:
             for act in state.queue:
@@ -423,7 +424,7 @@ class Redirect(Action):
         source = self.targets[0]
         dest = self.targets[1]
 
-        newqueue = Mqueue()
+        newqueue = mafl.Mqueue()
         for act in state.queue:
             if act.actor == source:
                 newact = copy.deepcopy(act)

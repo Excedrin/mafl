@@ -13,3 +13,5 @@ from mafqueue import Mqueue
 from player import Player
 
 import setup
+
+import sanity

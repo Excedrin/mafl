@@ -15,7 +15,7 @@ def rungame(bot, public, to, who, state):
         print("res:",target,l)
         if target:
             bot.notice(target, l)
-        elif public:
+        elif channel:
             bot.privmsg(channel, l)
         else:
             bot.notice(who, l)
@@ -28,66 +28,79 @@ def tick(bot):
     bot.store('maf', state)
 
 def run(bot, command, to, who, args):
-    state = bot.get('maf')
+    if not command:
+        return
 
     public = to and to[0] == "#"
 
-    if command == "%reset":
+    # in public, cmdchar is necessary
+    if public:
+        if command[0] == '%':
+            command = command[1:]
+        else:
+            return
+    else:
+        # in private, cmdchar is optional
+        if command[0] == '%':
+            command = command[1:]
+
+    state = bot.get('maf')
+
+    if command == "reset":
         state = None
 
     if state == None:
         state = game.Game(rng)
 
-    if command == "%join":
+    if command == "join":
         state.join(who)
 
-    elif command == "%done":
+    elif command == "done":
         state.done(who)
 
-    elif command == "%setrole":
-        if len(args) == 2:
-            state.setrole(args[0], args[1])
+    elif command == "role":
+        state.fullrolepm(who)
 
-    elif command == "%role":
-        state.rolepm(who)
-
-    elif command == "%force":
+# mod commands
+    elif command == "force":
         if len(args) >= 2:
             run(bot, args[1], to, args[0], args[2:])
-        if args[1] == '%join':
+        if args[1] == 'join' or args[1][1:] == 'join':
             state.fake[args[0]] = who
 
-    elif command == "%living":
-        state.livingmsg()
-
-    elif command == "%forcenextphase":
+    elif command == "forcenextphase":
         state.nextphase()
 
-    elif command == "%phase":
-        bot.reply(to, who, "%s" %state.phase.name)
-
-    elif command == "%votes":
-        state.votecount()
-
-    elif command == "%replace":
+    elif command == "replace":
         if len(args) == 2:
             state.replace(args[0], args[1])
 
-    elif public and command == "%start":
-        state.start(to)
-    elif public and command == "%wait":
-        state.wait()
-    elif public and command == "%go":
-        state.go(args[0] if args else None)
+    elif command == "setrole":
+        if len(args) == 2:
+            state.setrole(args[0], args[1])
 
-    elif command == "%dump":
+    elif command == "dump":
         dumper.max_depth = 9
         print(dumper.dump(state))
 
-    elif command and ((command[0] == '%') or not public):
-        ability = command[1:] if command[0] == '%' else command
-        print("args:",args)
-        state.tryability(who, public, ability, args)
+# public informational commands
+    elif public and command == "living":
+        state.livingmsg()
+    elif public and command == "votes":
+        state.votecount()
+    elif public and command == "phase":
+        state.phasemsg()
+    elif public and command == "start":
+        state.start(to)
+    elif public and command == "wait":
+        state.wait()
+    elif public and command == "go":
+        state.go(args[0] if args else None)
+
+# role commands
+    elif command:
+        print("game command %s args %s"%(command,args))
+        state.tryability(who, public, command, args)
 
     rungame(bot, public, to, who, state)
 

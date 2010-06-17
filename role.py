@@ -1,8 +1,8 @@
 from ability import Ability
 from actions import *
 from phase import *
-
 from target import *
+from sanity import *
 
 class Role:
     pass
@@ -32,6 +32,36 @@ class Cop(Role):
         Townie.setrole(actor)
         actor.addability(Ability(Inspect, Night))
 
+class InsaneCop(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Inspect, Night, args={'sanity':Insane()}))
+
+class NaiveCop(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Inspect, Night, args={'sanity':Naive()}))
+
+class ParanoidCop(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Inspect, Night, args={'sanity':Paranoid()}))
+
+class StonedCop(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Inspect, Night, args={'sanity':Stoned()}))
+
+class RandomCop(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Inspect, Night, args={'sanity':Random()}))
+
+class RoleCop(Role):
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Inspect, Night, args={'sanity':Rolecop()}))
+
 class DayCop(Role):
     def setrole(actor):
         Townie.setrole(actor)
@@ -40,7 +70,7 @@ class DayCop(Role):
 class OneShotCop(Role):
     def setrole(actor):
         Townie.setrole(actor)
-        actor.addability(Ability(Inspect, Night, uses=1))
+        actor.addability(Ability(Inspect, Any, uses=1))
 
 class Doctor(Role):
     def setrole(actor):

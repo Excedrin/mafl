@@ -257,13 +257,14 @@ class Game:
         self.message(who, self.phase.name)
 
     def livingmsg(self, who=None):
-        msg = "living players: %s"% ", ".join([x.name for x in self.living()])
+        living = self.living()
+        msg = "%d living players: %s"% (len(living), ", ".join([x.name for x in living]))
         self.message(who, msg)
 
-    def rolepm(self, name):
+    def fullrolepm(self, name):
         player = self.playerbyname(name)
         if player:
-            self.message(name, player.rolepm(self))
+            self.message(name, player.fullrolepm(self))
 
     def done(self, name):
         player = self.playerbyname(name)
@@ -335,7 +336,7 @@ class Game:
                     # send role pms
                     for name, slot in self.slot.items():
                         player = self.playerbyslot(slot)
-                        self.message(name, player.rolepm(self))
+                        self.message(name, player.fullrolepm(self))
                 else:
                     self.message("Failed to assign roles")
                     self.reset()

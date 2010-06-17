@@ -19,8 +19,6 @@ class Ability:
                           or self.uses > 0)
                       and not self.auto)
                     or self.free))
-# free actions shouldn't cause a phase to not end when they're unused
-# but if they don't, day would instantly end ;_;
 
     def __str__(self):
         # instantiate an action to get it to format itself
