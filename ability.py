@@ -1,7 +1,7 @@
 import target
 
 class Ability:
-    def __init__(self, action, phase, uses=None, free=False, auto=False, public=False, args={}):
+    def __init__(self, action, phase, uses=None, free=False, auto=False, public=False, ghost=False, args={}):
         self.action = action
         self.phase = phase
         self.uses = uses
@@ -10,14 +10,16 @@ class Ability:
         self.auto = auto
         self.args = args
         self.public = public
+        self.ghost = ghost
 
 # it's the right phase, and (an unused action, with uses left, or a free action)
-    def usable(self, state):
+    def usable(self, player, state):
         return (issubclass(self.phase, state.phase)
                 and ((not self.used
                       and (self.uses == None
-                          or self.uses > 0)
-                      and not self.auto)
+                            or self.uses > 0)
+                      and not self.auto
+                      and player.living ^ self.ghost)
                     or self.free))
 
     def __str__(self):
@@ -25,6 +27,8 @@ class Ability:
         desc = [str(self.action(0,[],self.args)), "(%s phase)" % self.phase.name]
         if self.auto:   
             desc.insert(0, "auto")
+        if self.ghost:   
+            desc.insert(0, "ghost")
 
         if self.uses != None:
             desc.insert(0, "%d use" % self.uses)
@@ -34,7 +38,13 @@ class Ability:
         self.used = False
 
     def use(self, state, public, player, targets):
-        if self.public != public:
+        if self.action.arity != None and len(targets) != self.action.arity:
+            err = "%s needs %d target(s) (%s)" %(self.action.name,self.action.arity,', '.join(targets))
+        elif not player.living and not self.ghost:
+            err = "%s isn't usable when dead"%(self.action.name)
+        elif self.ghost and player.living:
+            err = "%s isn't usable when alive"%(self.action.name)
+        elif self.public != public:
             err = "%s must be used %s" % (self.action.name,
                 "publicly" if self.public else "privately")
         elif self.auto:

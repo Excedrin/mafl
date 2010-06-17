@@ -7,6 +7,7 @@ class Untrackable:
 class Action:
     name = "none"
     priority = 99999999
+    arity = None
 
     def __init__(self, actor, targets, args={}):
         self.actor = actor
@@ -55,6 +56,7 @@ class Vote(Action, Untrackable):
 class Inspect(Action):
     name = "inspect"
     priority = 20
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)
@@ -73,6 +75,7 @@ class Inspect(Action):
 class Kill(Action):
     name = "kill"
     priority = 70
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)
@@ -92,6 +95,8 @@ class Kill(Action):
 class SuperKill(Action):
     name = "superkill"
     priority = 70
+    arity = 1
+
     def resolve(self, state):
         return Kill.resolve(self, state)
 
@@ -107,6 +112,7 @@ class Lynch(Action):
 class PoisonKill(Action):
     name = "poisonkill"
     priority = 70
+
     def resolve(self, state):
         self.args['how'] = 'poisoned'
         return Kill.resolve(self, state)
@@ -114,6 +120,7 @@ class PoisonKill(Action):
 class Poison(Action):
     name = "poison"
     priority = 70
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)
@@ -127,6 +134,7 @@ class Poison(Action):
 class Recruit(Action):
     name = "recruit"
     priority = 75
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)
@@ -144,6 +152,7 @@ class Recruit(Action):
 class Copy(Action):
     name = "copy"
     priority = 10
+    arity = 2
 
     def resolve(self, state):
         state.resolved(self)
@@ -174,6 +183,7 @@ class Copy(Action):
 class Bus(Action):
     name = "bus"
     priority = 12
+    arity = 2
 
     def resolve(self, state):
         state.resolved(self)
@@ -196,6 +206,7 @@ class Bus(Action):
 class Delay(Action):
     name = "delay"
     priority = 13
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)
@@ -218,6 +229,7 @@ class Delay(Action):
 class Block(Action):
     name = "block"
     priority = 14
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)
@@ -233,6 +245,7 @@ class Block(Action):
 class Eavesdrop(Action, Untrackable):
     name = "eavesdrop"
     priority = 95
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)
@@ -249,6 +262,7 @@ class Eavesdrop(Action, Untrackable):
 class Friend(Action):
     name = "friend"
     priority = 20
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)
@@ -263,6 +277,7 @@ class Friend(Action):
 class Guard(Action):
     name = "guard"
     priority = 40
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)
@@ -298,6 +313,7 @@ class Guard(Action):
 class Immune(Action):
     name = "immune"
     priority = 8
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)
@@ -334,6 +350,7 @@ class Immune(Action):
 class Reflex(Action):
     name = "reflex"
     priority = 9
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)
@@ -360,6 +377,7 @@ class Reflex(Action):
 class Hide(Action):
     name = "hide"
     priority = 11
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)
@@ -375,6 +393,7 @@ class Hide(Action):
 class Protect(Action):
     name = "protect"
     priority = 50
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)
@@ -396,6 +415,7 @@ class Protect(Action):
 class Antidote(Action):
     name = "antidote"
     priority = 50
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)
@@ -420,6 +440,7 @@ class Antidote(Action):
 class Redirect(Action):
     name = "redirect"
     priority = 15
+    arity = 2
 
     def resolve(self, state):
         state.resolved(self)
@@ -441,6 +462,7 @@ class Redirect(Action):
 class Track(Action):
     name = "track"
     priority = 90
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)
@@ -461,6 +483,7 @@ class Track(Action):
 class Watch(Track):
     name = "watch"
     priority = 90
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)
@@ -484,6 +507,7 @@ class Watch(Track):
 class Patrol(Track):
     name = "patrol"
     priority = 90
+    arity = 1
 
     def resolve(self, state):
         state.resolved(self)

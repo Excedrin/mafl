@@ -446,7 +446,7 @@ class Game:
 
     def tryability(self, who, public, ability, args):
         player = self.playerbyname(who)
-        if player and player.living:
+        if player:
             print("found player:",who,player)
             try:
                 cleaned = []

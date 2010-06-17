@@ -26,6 +26,11 @@ class OneShotVigilante(RoleBase):
         Townie.setrole(actor)
         actor.addability(Ability(Kill, Night, uses=1))
 
+class GhostVigilante(RoleBase):
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Kill, Any, uses=1, ghost=True))
+
 class Cop(RoleBase):
     def setrole(actor):
         Townie.setrole(actor)
