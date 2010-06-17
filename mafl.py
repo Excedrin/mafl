@@ -15,3 +15,10 @@ from player import Player
 import setup
 
 import sanity
+
+class Both:
+    pass
+class Other:
+    pass
+class Self:
+    pass

@@ -261,12 +261,13 @@ class Friend(Action):
         return state.queue
 
 class Guard(Action):
-
     name = "guard"
     priority = 40
 
     def resolve(self, state):
         state.resolved(self)
+
+        guard = self.args.get('guard', mafl.Both)
 
         killfound = False
         for target in self.targets:
@@ -275,10 +276,12 @@ class Guard(Action):
                 if killfound or (not (isinstance(act, Kill) and target in act.targets)):
                     newqueue.enqueue(act)
                 else:
-                    # bodyguard kills the killer (ignore bus)
-                    newqueue.enqueue(Kill(self.actor, [act.actor]))
-                    # bodyguard dies instead of target
-                    newqueue.enqueue(Kill(act.actor, [self.actor]))
+                    if guard is mafl.Both or guard is mafl.Other:
+                        # bodyguard kills the killer (ignore bus)
+                        newqueue.enqueue(Kill(self.actor, [act.actor]))
+                    if guard is mafl.Both or guard is mafl.Self:
+                        # bodyguard dies also / instead of target
+                        newqueue.enqueue(Kill(act.actor, [self.actor]))
                     killfound = True
         return newqueue
 
