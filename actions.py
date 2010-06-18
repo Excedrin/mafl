@@ -1,4 +1,8 @@
 import mafl
+from mafqueue import Mqueue
+import faction
+import sanity
+from misc import Some
 import copy
 
 class Untrackable:
@@ -56,12 +60,12 @@ class Vote(Action, Untrackable):
 class Inspect(Action):
     name = "inspect"
     priority = 20
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)
 
-        default = mafl.sanity.Sane([mafl.faction.Mafia, mafl.faction.Town])
+        default = sanity.Sane([mafl.faction.Mafia, mafl.faction.Town])
         inspect = self.args.get('sanity', default)
 
         for slot in self.targets:
@@ -75,7 +79,7 @@ class Inspect(Action):
 class Kill(Action):
     name = "kill"
     priority = 70
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)
@@ -95,7 +99,7 @@ class Kill(Action):
 class SuperKill(Action):
     name = "superkill"
     priority = 70
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         return Kill.resolve(self, state)
@@ -120,7 +124,7 @@ class PoisonKill(Action):
 class Poison(Action):
     name = "poison"
     priority = 70
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)
@@ -134,7 +138,7 @@ class Poison(Action):
 class Recruit(Action):
     name = "recruit"
     priority = 75
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)
@@ -152,7 +156,7 @@ class Recruit(Action):
 class Copy(Action):
     name = "copy"
     priority = 10
-    arity = 2
+    arity = Some(2)
 
     def resolve(self, state):
         state.resolved(self)
@@ -161,7 +165,7 @@ class Copy(Action):
         dest = self.targets[1]
 #        print("copy src: %s dst: %s" %(source,dest))
 
-        newqueue = mafl.Mqueue()
+        newqueue = Mqueue()
         for act in state.queue:
             if act.actor == source:
                 newact = copy.deepcopy(act)
@@ -183,7 +187,7 @@ class Copy(Action):
 class Bus(Action):
     name = "bus"
     priority = 12
-    arity = 2
+    arity = Some(2)
 
     def resolve(self, state):
         state.resolved(self)
@@ -206,12 +210,12 @@ class Bus(Action):
 class Delay(Action):
     name = "delay"
     priority = 13
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)
 
-        newqueue = mafl.Mqueue()
+        newqueue = Mqueue()
         for act in state.queue:
             if act.actor in [state.bussedslot(x) for x in self.targets]:
                 if act.args.get('delayed', False):
@@ -229,11 +233,11 @@ class Delay(Action):
 class Block(Action):
     name = "block"
     priority = 14
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)
-        newqueue = mafl.Mqueue()
+        newqueue = Mqueue()
 
         for act in state.queue:
             if not act.actor in [state.bussedslot(x) for x in self.targets]:
@@ -245,11 +249,11 @@ class Block(Action):
 class Eavesdrop(Action, Untrackable):
     name = "eavesdrop"
     priority = 95
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)
-        newqueue = mafl.Mqueue()
+        newqueue = Mqueue()
         for act in state.queue:
             for target in self.targets:
                 if isinstance(act, Message) and target in act.targets:
@@ -262,7 +266,7 @@ class Eavesdrop(Action, Untrackable):
 class Friend(Action):
     name = "friend"
     priority = 20
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)
@@ -275,26 +279,33 @@ class Friend(Action):
         return state.queue
 
 class Guard(Action):
+    class Both:
+        pass
+    class Other:
+        pass
+    class Self:
+        pass
+
     name = "guard"
     priority = 40
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)
 
-        guard = self.args.get('guard', mafl.Both)
+        guard = self.args.get('guard', Both)
 
         killfound = False
         for target in self.targets:
-            newqueue = mafl.Mqueue()
+            newqueue = Mqueue()
             for act in state.queue:
                 if killfound or (not (isinstance(act, Kill) and target in act.targets)):
                     newqueue.enqueue(act)
                 else:
-                    if guard is mafl.Both or guard is mafl.Other:
+                    if guard is Both or guard is Other:
                         # bodyguard kills the killer (ignore bus)
                         newqueue.enqueue(Kill(self.actor, [act.actor]))
-                    if guard is mafl.Both or guard is mafl.Self:
+                    if guard is Both or guard is Self:
                         # bodyguard dies also / instead of target
                         newqueue.enqueue(Kill(act.actor, [self.actor]))
                     killfound = True
@@ -313,7 +324,7 @@ class Guard(Action):
 class Immune(Action):
     name = "immune"
     priority = 8
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)
@@ -324,7 +335,7 @@ class Immune(Action):
         else:
             operator = lambda x: x
 
-        newqueue = mafl.Mqueue()
+        newqueue = Mqueue()
         for act in state.queue:
             for target in self.targets:
                 if target in act.targets:
@@ -350,7 +361,7 @@ class Immune(Action):
 class Reflex(Action):
     name = "reflex"
     priority = 9
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)
@@ -377,12 +388,12 @@ class Reflex(Action):
 class Hide(Action):
     name = "hide"
     priority = 11
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)
 
-        newqueue = mafl.Mqueue()
+        newqueue = Mqueue()
         for target in self.targets:
             # all actions targeting a hidden player fail
             for act in state.queue:
@@ -393,13 +404,13 @@ class Hide(Action):
 class Protect(Action):
     name = "protect"
     priority = 50
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)
 
         killfound = False
-        newqueue = mafl.Mqueue()
+        newqueue = Mqueue()
 
         for target in self.targets:
             for act in state.queue:
@@ -415,13 +426,13 @@ class Protect(Action):
 class Antidote(Action):
     name = "antidote"
     priority = 50
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)
 
         killfound = False
-        newqueue = mafl.Mqueue()
+        newqueue = Mqueue()
 
         for target in self.targets:
             for act in state.queue:
@@ -440,7 +451,7 @@ class Antidote(Action):
 class Redirect(Action):
     name = "redirect"
     priority = 15
-    arity = 2
+    arity = Some(2)
 
     def resolve(self, state):
         state.resolved(self)
@@ -448,7 +459,7 @@ class Redirect(Action):
         source = self.targets[0]
         dest = self.targets[1]
 
-        newqueue = mafl.Mqueue()
+        newqueue = Mqueue()
         for act in state.queue:
             if act.actor == source:
                 newact = copy.deepcopy(act)
@@ -462,7 +473,7 @@ class Redirect(Action):
 class Track(Action):
     name = "track"
     priority = 90
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)
@@ -483,7 +494,7 @@ class Track(Action):
 class Watch(Track):
     name = "watch"
     priority = 90
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)
@@ -507,7 +518,7 @@ class Watch(Track):
 class Patrol(Track):
     name = "patrol"
     priority = 90
-    arity = 1
+    arity = Some(1)
 
     def resolve(self, state):
         state.resolved(self)

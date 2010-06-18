@@ -62,22 +62,27 @@ def run(bot, command, to, who, args):
         state.fullrolepm(who)
 
 # mod commands
-    elif command == "force":
+    elif public and command == "force":
         if len(args) >= 2:
             run(bot, args[1], to, args[0], args[2:])
         if args[1] == 'join' or args[1][1:] == 'join':
             state.fake[args[0]] = who
 
-    elif command == "forcenextphase":
+    elif public and command == "forcenextphase":
         state.nextphase()
 
-    elif command == "replace":
+    elif public and command == "replace":
         if len(args) == 2:
             state.replace(args[0], args[1])
 
-    elif command == "setrole":
+    elif public and command == "showsetup" and state.channel:
+        state.showsetup(who)
+        bot.notice(state.channel, "%s used showsetup"%who)
+
+    elif command == "setrole" and state.channel:
         if len(args) == 2:
-            state.setrole(args[0], args[1])
+            if state.setrole(args[0], args[1]):
+                bot.notice(state.channel, "%s used setrole"%who)
 
     elif command == "dump":
         dumper.max_depth = 9

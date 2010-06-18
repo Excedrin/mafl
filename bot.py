@@ -61,6 +61,7 @@ def stripcolors(s):
             i += 1
     return r
 
+MAXSEND = 1000
 MAXCMDS = 6
 class Bot():
     def __init__(self, *args):
@@ -110,12 +111,9 @@ class Bot():
         self.commands = [cmd_raw, cmd_version, cmd_time, cmd_maf]
 
     def send(self, msg):
-        if self.sentrate < 1000:
-            msg = bytes(msg.encode('utf8')) + b"\r\n"
-            self.sent += len(msg)
-            self.s.send(msg)
-        else:
-            print("throttled output")
+        msg = bytes(msg.encode('utf8')) + b"\r\n"
+        self.sent += len(msg)
+        self.s.send(msg)
 
     def notice(self, to, msg):
         self.send("NOTICE %s :%s" %(to, msg))
@@ -156,13 +154,14 @@ class Bot():
             if fields[0] != self.server:
                 if fields[0] in self.prev:
                     self.prev[fields[0]] += 1
-                    if self.prev[fields[0]] == MAXCMDS:
+                    if self.sentrate > MAXSEND and self.prev[fields[0]] == MAXCMDS:
                         print("ignored msg from",fields[0])
                         return
-                    if self.prev[fields[0]] > MAXCMDS:
+                    if self.sentrate > MAXSEND and self.prev[fields[0]] > MAXCMDS:
                         return
                 else:
                     self.prev[fields[0]] = 1
+
         if len(fields) > 2:
             if (nick(fields[0]) == self.nick) and fields[1] == 'JOIN':
                 self.joined = True
@@ -206,7 +205,7 @@ class Bot():
         byfreq = list(self.prev.items())
 
         # 100 bytes per second is kinda arbitrary
-        if self.sentrate < 100 and self.recvrate < 100:
+        if self.sentrate < 100: #and self.recvrate < 100:
             for k,v in byfreq:
                 if v > 0:
                     self.prev[k] -= 1

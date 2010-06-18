@@ -1,11 +1,11 @@
 from actor import Actor
 
 class Player(Actor):
-    def __init__(self, name, faction):
+    def __init__(self, name):
         Actor.__init__(self)
 
         self.name = name
-        self.faction = faction
+        self.faction = None
         self.living = True
 
     def __str__(self):

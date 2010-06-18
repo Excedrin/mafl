@@ -92,15 +92,15 @@ class Game:
         else:
             self.newphase = self.phase.nextphase
 
-    def newplayer(self, name, faction):
+    def newplayer(self, name):
         slot = len(self.players)
         self.slot[name] = slot
         self.name[slot] = name
-        self.players.append(mafl.Player(name, faction))
+        self.players.append(mafl.Player(name))
 
     def join(self, name):
         if self.phase == mafl.phase.Idle or self.phase == mafl.phase.Signups:
-            self.newplayer(name, None)
+            self.newplayer(name)
 
     def enqueue(self, action):
         print("enqueue",action)
@@ -422,10 +422,19 @@ class Game:
         player = self.playerbyname(p1)
         if newrole and player:
             newrole.setrole(player)
+            self.message(None, "%s role set"%p1)
+            return True
         elif not player:
             self.message(None, "didn't find player %s"%p1)
+            return False
         elif not newrole:
             self.message(None, "didn't find role %s"%rolename)
+            return False
+
+    def showsetup(self, who):
+        for name, slot in self.slot.items():
+            player = self.playerbyslot(slot)
+            self.message(who, name + ": " + player.fullrolepm(self))
 
     def fuzzy(self, tryname):
         best = 0
