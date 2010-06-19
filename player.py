@@ -26,17 +26,17 @@ class Player(Actor):
         return abilities
 
     def rolepm(self):
-        return "abilities { %s }" % ", ".join(map(str, self.abilities.values())) 
+        return "abilities { %s }" % ", ".join(map(str, self.abilities.values()))
 
     def fullrolepm(self, state):
         farole = ""
         fa = self.factionabilities()
         if fa:
             farole = "group abilities { %s } " % ", ".join(map(str, fa))
-        return "%s - %s" %(self.faction.rolepm(state), farole + self.rolepm())
+        return "%s (%s) %s %s" %(self.role, self.faction.name, self.faction.rolepm(state), farole + self.rolepm())
 
     def flip(self):
-        return self.faction.name
+        return "%s %s" % (self.faction.name, self.truename)
 
     def unused(self, state):
         if self.living:

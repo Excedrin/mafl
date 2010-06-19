@@ -85,10 +85,10 @@ class Kill(Action):
             if player.living:
                 player.living = False
                 print("kill resolved (%s killed by %s)" % (player.name, self.actor))
-                how = "killed"
+                how = "was killed"
                 if 'how' in self.args:
                     how = self.args['how']
-                state.message(None, "%s (%s) was %s"%(player.name, player.flip(), how))
+                state.message(None, "%s (%s) %s"%(player.name, player.flip(), how))
                 state.resetvotes()
 
         return state.queue
@@ -105,8 +105,17 @@ class Lynch(Action):
     priority = 70
 
     def resolve(self, state):
-        self.args['how'] = 'lynched'
+        self.args['how'] = 'was lynched'
         state.votecount(True)
+        return Kill.resolve(self, state)
+
+class Suicide(Action):
+    name = "suicide"
+    priority = 70
+
+    def resolve(self, state):
+        self.targets = [self.actor]
+        self.args['how'] = 'comitted suicide'
         return Kill.resolve(self, state)
 
 class PoisonKill(Action):
@@ -114,7 +123,7 @@ class PoisonKill(Action):
     priority = 70
 
     def resolve(self, state):
-        self.args['how'] = 'poisoned'
+        self.args['how'] = 'was poisoned'
         return Kill.resolve(self, state)
 
 class Poison(Action):
@@ -341,7 +350,7 @@ class Immune(Action):
         if 'not' in self.args:
             msg.insert(0, 'not')
         if 'immune' in self.args:
-            msg.append(self.args['immune'].name)
+            msg.append(", ".join([x.name for x in self.args['immune']]))
         return " ".join(msg)
 
 class Reflex(Action):
@@ -351,16 +360,18 @@ class Reflex(Action):
     def resolve(self, state):
         state.resolved(self)
 
+        triggers = self.args.get('triggers', [Action])
+
         for target in self.targets:
             for act in state.queue:
                 if target in act.targets:
-                    if 'action' in self.args:
-                        reflexact = self.args['action']
-                        newact = copy.deepcopy(reflexact)
-                        newact.actor = target
-                        if not newact.targets:
+                    for trigger in triggers:
+                        if isinstance(act, trigger):
+                            reflexact = self.args.get('action', act)
+                            newact = copy.deepcopy(reflexact)
+                            newact.actor = target
                             newact.targets = [act.actor]
-                        state.queue.enqueue(newact)
+                            state.queue.enqueue(newact)
 
         return state.queue
 

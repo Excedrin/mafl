@@ -16,18 +16,18 @@ class Sk(Faction):
         members = list(filter(lambda x: x.faction==self, alive))
         return len(members) >= (len(alive) / 2)
     def rolepm(self, state):
-        return "%s: You win if you have majority." %self.name
+        return "You win if you have majority."
 
 class Survivor(Faction):
     name = "survivor"
     def win(self, state, player):
         if player.living:
             for p in state.living():
-                if p != player and p.faction.win(state, p):
+                if p != player and not isinstance(p.faction, Survivor) and p.faction.win(state, p):
                     return True
         return False
     def rolepm(self, state):
-        return "%s: You win if you're alive when the game ends." %self.name
+        return "You win if you're alive when the game ends."
 
 class Town(Faction):
     name = "town"
@@ -36,7 +36,7 @@ class Town(Faction):
         members = list(filter(lambda x: x.faction==self or isinstance(x.faction, Survivor), alive))
         return len(members) == len(alive)
     def rolepm(self, state):
-        return "%s: You win when all threats to the town are eliminated." %self.name
+        return "You win when all threats to the town are eliminated."
 
 class Mafia(Faction):
     name = "mafia"
@@ -54,7 +54,7 @@ class Mafia(Faction):
         alive = state.living()
         members = list(filter(lambda x: x.faction==self, alive))
         memberstr = ', '.join([x.name for x in members])
-        return "%s: members ( %s ), you win if you have majority." %(self.name, memberstr)
+        return "members ( %s ), you win if you have majority." % memberstr
 
 class Cult(Faction):
     name = "cult"
@@ -72,7 +72,7 @@ class Cult(Faction):
         alive = state.living()
         members = list(filter(lambda x: x.faction==self, alive))
         memberstr = ', '.join([x.name for x in members])
-        return "%s: members ( %s ), you win if you have majority." %(self.name, memberstr)
+        return "members ( %s ), you win if you have majority." % memberstr
 
 def init():
     env = init.__globals__

@@ -2,6 +2,7 @@ import mafl
 import random
 
 class Sanity:
+    name = ""
     def __init__(self, factions=[mafl.faction.Town, mafl.faction.Mafia]):
         self.factions = factions
     def result(self, p):
@@ -19,6 +20,7 @@ class Sane(Sanity):
 # insane inspect can still tell when a faction isn't any of the factions
 # it knows about
 class Insane(Sanity):
+    name = "Insane"
     def result(self, p):
         isfaction = []
         notfaction = []
@@ -33,6 +35,7 @@ class Insane(Sanity):
             return "isn't " + " or ".join(notfaction)
 
 class Paranoid(Sanity):
+    name = "Paranoid"
     def __init__(self, factions=[mafl.faction.Mafia]):
         self.factions = factions
     def result(self, p):
@@ -40,16 +43,21 @@ class Paranoid(Sanity):
         return "is " + f.name
 
 class Naive(Paranoid):
+    name = "Naive"
     def __init__(self, factions=[mafl.faction.Town]):
         self.factions = factions
     def result(self, p):
         return Paranoid.result(self, p)
 
 class Stoned(Sanity):
+    name = "Stoned"
     def result(self, p):
         return "isn't " + " or ".join([f.name for f in self.factions])
 
 class Random(Stoned, Naive):
+    name = "Random"
+    def __init__(self, factions=[mafl.faction.Town, mafl.faction.Mafia]):
+        self.factions = factions
     def result(self, p):
         if random.choice((True,False)):
             return Stoned.result(self, p)
@@ -57,13 +65,17 @@ class Random(Stoned, Naive):
             return Paranoid.result(self, p)
 
 class Rolecop(Sanity):
+    name = "Role"
     def result(self, p):
-        return p.rolepm()
+        return p.role
 
 if __name__ == "__main__":
-    maf = mafl.Player("maf", mafl.faction.Mafia())
-    town = mafl.Player("town", mafl.faction.Town())
-    sk = mafl.Player("sk", mafl.faction.Sk())
+    maf = mafl.Player("maf")
+    maf.faction = mafl.faction.Mafia()
+    town = mafl.Player("town")
+    town.faction = mafl.faction.Town()
+    sk = mafl.Player("sk")
+    sk.faction = mafl.faction.Sk()
 
     cs = Sane()
     ci = Insane()

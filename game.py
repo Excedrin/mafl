@@ -124,6 +124,9 @@ class Game:
             if verbose:
                 print("resolve done")
 
+    def resetresolved(self):
+        self.resqueue = mafl.Mqueue()
+
     def resetvotes(self):
         self.votes = {}
 
@@ -291,7 +294,7 @@ class Game:
         for player in self.players:
             slot = self.slotbyplayer(player)
             abilities = player.allabilities()
-            for action in filter(None, map(lambda x: x.useauto(self.phase, slot), abilities)):
+            for action in filter(None, map(lambda x: x.useauto(self, self.phase, slot), abilities)):
                 print("enqueue(auto)",action)
                 self.autoqueue.enqueue(action)
 
@@ -353,6 +356,7 @@ class Game:
                 self.phasemsg()
                 self.livingmsg()
 
+            self.resetresolved()
             self.resetuses()
             self.resetvotes()
 
@@ -418,11 +422,14 @@ class Game:
         else:
             self.message(None, "didn't find player %s"%p1)
 
-    def setrole(self, p1, rolename):
+    def setrole(self, p1, rolename, add=False):
         newrole = mafl.role.roles.get(rolename, None)
         player = self.playerbyname(p1)
         if newrole and player:
-            newrole.setrole(player)
+            if add:
+                player.addrole(newrole)
+            else:
+                player.setrole(newrole)
             self.message(None, "%s role set"%p1)
             return True
         elif not player:
@@ -484,3 +491,26 @@ class Game:
             except Exception as e:
                 print("exception trying to handle player ability: %s\n%s\n" %(ability, e))
                 traceback.print_exc()
+
+    def newsetup(self):
+        self.phase = mafl.phase.Signups
+        self.nextphase()
+
+    def testsetup(self, args):  
+        if len(args) >= 1 and int(args[0]):
+            n = int(args[0])
+            print("testsetup for ",n)
+
+            fakeplayers = [mafl.Player(x) for x in range(n)]
+            self.setup = mafl.setup.Setup(self.rng, fakeplayers)
+            if self.setup.setroles():
+                byfac = {}
+                for p in fakeplayers:
+                    if p.faction.name in byfac:
+                        byfac[p.faction.name].append(p.truename)
+                    else:
+                        byfac[p.faction.name] = [p.truename]
+                msg = []
+                for k,v in byfac.items():
+                    msg.append("%s: %s" %(k, ", ".join(v)))
+                self.message(None, "; ".join(msg))

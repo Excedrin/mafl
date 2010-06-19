@@ -62,6 +62,8 @@ def run(bot, command, to, who, args):
         state.fullrolepm(who)
 
 # mod commands
+    elif public and command == "newsetup":
+        state.newsetup()
     elif public and command == "force":
         if len(args) >= 2:
             run(bot, args[1], to, args[0], args[2:])
@@ -94,6 +96,9 @@ def run(bot, command, to, who, args):
         dumper.max_depth = 9
         print(dumper.dump(state))
 
+# informational commands
+    elif command == "testsetup":
+        state.testsetup(args)
 # public informational commands
     elif public and command == "living":
         state.livingmsg()
@@ -101,6 +106,7 @@ def run(bot, command, to, who, args):
         state.votecount()
     elif public and command == "phase":
         state.phasemsg()
+# game start cmds
     elif public and command == "start":
         state.start(to)
     elif public and command == "wait":

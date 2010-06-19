@@ -12,12 +12,23 @@ class Ability:
         def gettargets(self, state, actor, target, slots):
             return [actor]
 
+    class Everyone:
+        forced = True
+        def gettargets(self, state, actor, target, slots):
+            return [x for x in state.livingslots()]
+
     class EveryoneElse:
         forced = True
         def gettargets(self, state, actor, target, slots):
             return [x for x in state.livingslots() if x != actor]
 
     class Random:
+        forced = True
+        def gettargets(self, state, actor, target, slots):
+            everyone = Ability.Everyone.gettargets(self, state, actor, target, slots)
+            return [state.rng.choice(everyone)]
+
+    class RandomNonSelf:
         forced = True
         def gettargets(self, state, actor, target, slots):
             nonself = Ability.EveryoneElse.gettargets(self, state, actor, target, slots)
@@ -67,7 +78,12 @@ class Ability:
         self.name = name
         self.resolvers = resolvers
 
-    def name(self):
+        if auto:
+            for resolver in self.resolvers:
+                if not resolver.forced:
+                    raise ValueError
+
+    def getname(self):
         if self.name:
             return self.name
         else:
@@ -77,7 +93,7 @@ class Ability:
     def usable(self, player, state):
         return (issubclass(self.phase, state.phase)
                 and ((not self.used
-                      and (not self.uses or self.uses > 0)
+                      and (not self.uses or self.uses.v > 0)
                       and not self.auto
                       and player.living ^ self.ghost)
                     or self.free))
@@ -97,6 +113,18 @@ class Ability:
     def reset(self):
         self.used = False
 
+    def resolvetargets(self, state, actor, targets, slots):
+        resolved = []
+        # handle possibly forced targets
+        tmp = list(targets)
+        tmp.extend(["" for _ in range(len(self.resolvers))])
+        for resolver in self.resolvers:
+            target = tmp.pop(0)
+            resolved.extend(resolver.gettargets(state, actor, target, slots))
+
+        print("resolved",resolved)
+        return resolved
+
     def use(self, state, public, player, targets):
         if not player.living and not self.ghost:
             err = "%s isn't usable when dead"%(self.action.name)
@@ -109,7 +137,7 @@ class Ability:
             err = "%s is an auto action" % self.action.name
         elif not self.free and self.used:
             err = "%s has already been used" % self.action.name
-        elif not self.free and self.uses and self.uses < 1:
+        elif not self.free and self.uses and self.uses.v < 1:
             err = "%s has no uses left" % self.action.name
         elif not issubclass(self.phase, state.phase):
             err = "%s can't be used during this phase" % self.action.name
@@ -133,21 +161,13 @@ class Ability:
                         err = "%s needs %s target(s) (%s)" %(self.action.name, test.desc, ', '.join(targets))
                         return (False, err)
 
-            resolved = []
-            # handle possibly forced targets
-            tmp = list(targets)
-            tmp.extend(["" for _ in range(len(self.resolvers))])
-            for resolver in self.resolvers:
-                target = tmp.pop(0)
-                resolved.extend(resolver.gettargets(state, actor, target, slots))
-
-            print("resolved",resolved)
+            resolved = self.resolvetargets(state, actor, targets, slots)
 
             # finally good to go
             if not self.free:
                 self.used = True
                 if self.uses:
-                    self.uses -= 1
+                    self.uses.v -= 1
 
             # don't enqueue it if it fails
             if state.rng.random() > self.failure:
@@ -156,8 +176,12 @@ class Ability:
             return (True, "%s confirmed (%s)"%(self.action.name,', '.join(targets)))
         return (False, err)
 
-    def useauto(self, phase, player):
+    def useauto(self, state, phase, actor):
         if self.auto and issubclass(self.phase, phase):
-            return self.action(player, [player], self.args)
+            if self.uses:
+                self.uses.v -= 1
+
+            resolved = self.resolvetargets(state, actor, [], [])
+            return self.action(actor, resolved, self.args)
         else:
             return None

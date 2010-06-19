@@ -3,370 +3,349 @@ from actions import *
 from phase import *
 from sanity import *
 from faction import *
+from misc import *
+
+def getname(x):
+    return getattr(x, 'truename', x.name)
 
 class RoleBase:
+    basic = False
     factions = [Town, Cult, Mafia, Sk, Survivor]
-    def setrole(actor):
-        pass
-#        actor.role.append()
+    power = 0
 
 class Townie(RoleBase):
-    def name():
-        return "Townie"
-    def setrole(actor):
-        RoleBase.setrole(actor)
-        actor.addability(Ability(Vote, Day, free=True, public=True, restrict=[Ability.Living]))
+    basic = True
+    factions = [Town]
+    name = "Townie"
+    abilities = [Ability(Vote, Day, free=True, public=True, restrict=[Ability.Living])]
+    power = 0
+
+class Mafioso(RoleBase):
+    basic = True
+    factions = [Mafia]
+    name = "Mafioso"
+    abilities = Townie.abilities
+    power = 0.2
+
+class Cultist(RoleBase):
+    basic = True
+    factions = [Cult]
+    name = "Cultist"
+    abilities = Townie.abilities
+    power = 0.7
+
+class SurvivorBase(RoleBase):
+    basic = True
+    factions = [Survivor]
+    name = "Survivor"
+    abilities = Townie.abilities
+    power = 0
+
+class SerialKiller(RoleBase):
+    basic = True
+    factions = [Sk]
+    name = "Serial Killer"
+    abilities = Townie.abilities + [Ability(Kill)]
+    power = 0.7
 
 class Vigilante(RoleBase):
-    factions = [Town, Sk]
-    def name():
-        return "Vigilante"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Kill))
-
-class DayVigilante(RoleBase):
-    factions = [Town, Sk]
-    def name():
-        return "Day Vigilante"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Kill, Day))
+    factions = [Town]
+    name = "Vigilante"
+    abilities = Townie.abilities + [Ability(Kill)]
+    power = 0.7
 
 class CrazedFiend(RoleBase):
     factions = [Town, Sk]
-    def name():
-        return "Crazed Fiend"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Kill, Any, resolvers=[Ability.Random()] ))
-
-class OneShotVigilante(RoleBase):
-    factions = [Town, Sk]
-    def name():
-        return "One Shot Vigilante"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Kill, uses=1))
-
-class OneShotDayVigilante(RoleBase):
-    factions = [Town, Sk]
-    def name():
-        return "One Shot Day Vigilante"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Kill, Day, uses=1))
+    name = "Crazed Fiend"
+    abilities = Townie.abilities + [Ability(Kill, Any, uses=Some(1))]
+    power = 0.7
 
 class GraveVigilante(RoleBase):
     factions = [Town, Survivor]
-    def name():
-        return "Grave Vigilante"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Kill, Any, uses=1, ghost=True))
+    name = "Grave Vigilante"
+    abilities = Townie.abilities + [Ability(Kill, Any, uses=Some(1), ghost=True)]
+    power = 0.7
 
 class Cop(RoleBase):
-    factions = [Town, Cult, Survivor]
-    def name():
-        return "Cop"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Inspect))
-
-class InsaneCop(RoleBase):
-    factions = [Town, Cult, Survivor]
-    def name():
-        return "Cop"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Inspect, args={'sanity':Insane()}))
-
-class NaiveCop(RoleBase):
-    factions = [Town, Cult, Survivor]
-    def name():
-        return "Cop"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Inspect, args={'sanity':Naive()}))
-
-class ParanoidCop(RoleBase):
-    factions = [Town, Cult, Survivor]
-    def name():
-        return "Cop"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Inspect, args={'sanity':Paranoid()}))
-
-class StonedCop(RoleBase):
-    factions = [Town, Cult, Survivor]
-    def name():
-        return "Cop"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Inspect, args={'sanity':Stoned()}))
-
-class RandomCop(RoleBase):
-    factions = [Town, Cult, Survivor]
-    def name():
-        return "Cop"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Inspect, args={'sanity':Random()}))
-
-class RoleCop(RoleBase):
-    factions = [Town, Mafia]
-    def name():
-        return "Role Cop"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Inspect, args={'sanity':Rolecop()}))
+    factions = [Town, Survivor]
+    abilities = Townie.abilities + [Ability(Inspect)]
+    name = "Cop"
+    power = 0.5
 
 class DevilsAdvocate(RoleBase):
     factions = [Sk]
-    def name():
-        return "Devil's Advocate"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Inspect, args={'sanity':Rolecop()}))
-        actor.addability(Ability(Kill, Day))
+    name = "Devil's Advocate"
+    abilities = Townie.abilities + [Ability(Inspect, args={'sanity':Rolecop()}), Ability(Kill, Day)]
+    power = 0.8
 
 class DayCop(RoleBase):
     factions = [Town]
-    def name():
-        return "Day Cop"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Inspect, Day))
+    name = "Day Cop"
+    abilities = Townie.abilities + [Ability(Inspect, Day)]
+    power = 0.6
 
 class OneShotCop(RoleBase):
     factions = [Town, Survivor]
-    def name():
-        return "One Shot Cop"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Inspect, Any, uses=1))
+    name = "One Shot Cop"
+    abilities = Townie.abilities + [Ability(Inspect, Any, uses=Some(1))]
+    power = 0.4
 
 class Doctor(RoleBase):
-    factions = [Town, Cult, Survivor, Mafia]
-    def name():
-        return "Doctor"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Protect))
+    factions = [Town, Mafia]
+    name = "Doctor"
+    abilities = Townie.abilities + [Ability(Protect)]
+    power = 0.4
 
 class BusDriver(RoleBase):
-    factions = [Town, Survivor, Mafia]
-    def name():
-        return "Bus Driver"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Bus))
+    factions = [Town, Mafia]
+    name = "Bus Driver"
+    abilities = Townie.abilities + [Ability(Bus, resolvers=[Ability.User(), Ability.User()])]
+    power = 0.5
 
 class Roleblocker(RoleBase):
     factions = [Town, Survivor, Mafia]
-    def name():
-        return "Roleblocker"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Block))
+    name = "Roleblocker"
+    abilities = Townie.abilities + [Ability(Block)]
+    power = 0.3
 
 class Redirecter(RoleBase):
-    factions = [Town, Survivor, Mafia]
-    def name():
-        return "Redirecter"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Redirect))
+    factions = [Town, Mafia]
+    name = "Redirecter"
+    abilities = Townie.abilities + [Ability(Redirect, resolvers=[Ability.User(), Ability.User()])]
+    power = 0.5
 
 class Magnet(RoleBase):
     factions = [Town, Survivor, Mafia]
-    def name():
-        return "Magnet"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Redirect, resolvers=[Ability.User(), Ability.Self()]))
+    name = "Magnet"
+    abilities = Townie.abilities + [Ability(Redirect, resolvers=[Ability.User(), Ability.Self()])]
+    power = 0.5
+
+class Randomizer(RoleBase):
+    factions = [Town, Survivor, Mafia]
+    name = "Randomizer"
+    abilities = Townie.abilities + [Ability(Redirect, resolvers=[Ability.User(), Ability.Random()])]
+    power = 0.3
 
 class Tracker(RoleBase):
-    factions = [Town, Survivor, Mafia]
-    def name():
-        return "Tracker"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Track))
+    factions = [Town, Mafia]
+    name = "Tracker"
+    abilities = Townie.abilities + [Ability(Track)]
+    power = 0.5
 
 class Watcher(RoleBase):
     factions = [Town, Survivor, Mafia]
-    def name():
-        return "Watcher"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Watch))
+    name = "Watcher"
+    abilities = Townie.abilities + [Ability(Watch)]
+    power = 0.5
 
 class NightWatchman(RoleBase):
-    factions = [Town, Survivor, Mafia]
-    def name():
-        return "Night Watchman"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Patrol))
+    factions = [Town, Mafia]
+    name = "Night Watchman"
+    abilities = Townie.abilities + [Ability(Patrol)]
+    power = 0.6
 
 class DoubleVoter(RoleBase):
     factions = [Town, Survivor]
-    def name():
-        return "Double Voter"
-    def setrole(actor):
-        RoleBase.setrole(actor)
-        actor.addability(Ability(Vote, Day, free=True, args={'maxvotes':2} ))
+    name = "Double Voter"
+    abilities = Townie.abilities + [Ability(Vote, Day, free=True, public=True, args={'maxvotes':2} )]
+    power = 0.6
 
 class NonVoter(RoleBase):
     factions = [Town]
-    def name():
-        return "Nonvoter"
-    def setrole(actor):
-        RoleBase.setrole(actor)
-        actor.addability(Ability(Vote, Day, free=True, args={'maxvotes':0} ))
+    name = "Nonvoter"
+    abilities = Townie.abilities + [Ability(Vote, Day, free=True, public=True, args={'maxvotes':0} )]
+    power = -0.3
 
 class ParanoidGunOwner(RoleBase):
     factions = [Town, Survivor]
-    def name():
-        return "Paranoid Gun Owner"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Reflex, Any, auto=True, args={'action':Kill(0, [])} ))
+    name = "Paranoid Gun Owner"
+    abilities = Townie.abilities + [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()], args={'action':Kill(0, [])} )]
+    power = 0.1
 
 class Eavesdropper(RoleBase):
     factions = [Town, Cult, Survivor, Mafia]
-    def name():
-        return "Eavesdropper"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Eavesdrop))
+    name = "Eavesdropper"
+    abilities = Townie.abilities + [Ability(Eavesdrop)]
+    power = 0.4
 
 class Coward(RoleBase):
     factions = [Town, Survivor, Mafia]
-    def name():
-        return "Coward"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Hide, uses=1, args={'target':Self}))
+    name = "Coward"
+    abilities = Townie.abilities + [Ability(Hide, uses=Some(1), resolvers=[Ability.Self()] )]
+    power = 0.2
 
 class Ascetic(RoleBase):
     factions = [Town, Survivor, Mafia]
-    def name():
-        return "Ascetic"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Immune, args={'not':0,'immune':Kill(0,[])}))
+    name = "Ascetic"
+    abilities = Townie.abilities + [Ability(Immune, Any, auto=True, resolvers=[Ability.Self()], args={'not':0,'immune':[Kill]})]
+    power = -0.01
 
 class Bulletproof(RoleBase):
     factions = [Town, Mafia]
-    def name():
-        return "Bulletproof"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Immune, args={'immune':Kill(0,[])}))
+    name = "Bulletproof"
+    abilities = Townie.abilities + [Ability(Immune, Any, auto=True, resolvers=[Ability.Self()], args={'immune':[Kill]})]
+    power = 0.3
 
 class Commando(RoleBase):
     factions = [Town, Sk]
-    def name():
-        return "Commando"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Immune, Any, args={'immune':Kill(0,[])}))
-        actor.addability(Ability(Kill))
+    name = "Commando"
+    abilities = Bulletproof.abilities + Vigilante.abilities
+    power = 1
 
 class ChainsawMurderer(RoleBase):
     factions = [Sk]
-    def name():
-        return "Chainsaw Murderer"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(SuperKill))
+    name = "Chainsaw Murderer"
+    abilities = Townie.abilities + [Ability(SuperKill)]
+    power = 0.71
 
 class Ninja(RoleBase):
     factions = [Town, Sk]
-    def name():
-        return "Ninja"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Immune, Any, args={'immune':Track(0,[])}))
-        actor.addability(Ability(Kill))
+    name = "Ninja"
+    abilities = Townie.abilities + [Ability(Immune, Any, auto=True, resolvers=[Ability.Self()], args={'immune':[Track]}), Ability(Kill)]
+    power = 0.71
 
 class Delayer(RoleBase):
     factions = [Town, Survivor, Mafia]
-    def name():
-        return "Delayer"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Delay, args={'phases':2}))
+    name = "Delayer"
+    abilities = Townie.abilities + [Ability(Delay, args={'phases':2})]
+    power = 0.5
 
 class Poisoner(RoleBase):
     factions = [Town, Survivor, Sk]
-    def name():
-        return "Poisoner"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Poison, Day))
+    name = "Poisoner"
+    abilities = Townie.abilities + [Ability(Poison, Day)]
+    power = 0.5
 
 class PoisonDoctor(RoleBase):
     factions = [Town, Survivor, Mafia]
-    def name():
-        return "Poison Doctor"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Antidote))
+    name = "Poison Doctor"
+    abilities = Townie.abilities + [Ability(Antidote)]
+    power = 0.2
 
 class HumanShield(RoleBase):
     factions = [Town, Survivor, Mafia]
-    def name():
-        return "Human Shield"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Guard, args={'guard':Guard.Self}))
+    name = "Human Shield"
+    abilities = Townie.abilities + [Ability(Guard, args={'guard':Guard.Self})]
+    power = 0.2
 
 class Bodyguard(RoleBase):
     factions = [Town]
-    def name():
-        return "Bodyguard"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Guard))
+    name = "Bodyguard"
+    abilities = Townie.abilities + [Ability(Guard)]
+    power = 0.4
 
 class EliteBodyguard(RoleBase):
     factions = [Town]
-    def name():
-        return "Elite Bodyguard"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Guard, args={'guard':Guard.Other}))
+    name = "Elite Bodyguard"
+    abilities = Townie.abilities + [Ability(Guard, args={'guard':Guard.Other})]
+    power = 0.6
 
 class Friend(RoleBase):
     factions = [Town, Survivor]
-    def name():
-        return "Friend"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Friend, Day))
+    name = "Friendly Neighbor"
+    abilities = Townie.abilities + [Ability(Friend, Day)]
+    power = 0.8
 
 class Joat(RoleBase):
     factions = [Town]
-    def name():
-        return "Jack of all Trades"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Kill, uses=1))
-        actor.addability(Ability(Inspect, uses=1))
-        actor.addability(Ability(Protect, uses=1))
-        actor.addability(Ability(Block, uses=1))
+    name = "Jack of all Trades"
+    abilities = Townie.abilities + [Ability(Kill, uses=Some(1)),
+                Ability(Inspect, uses=Some(1)), Ability(Protect, uses=Some(1)),
+                Ability(Block, uses=Some(1))]
+    power = 1
 
 class Stalker(RoleBase):
     factions = [Town]
-    def name():
-        return "Stalker"
-    def setrole(actor):
-        Townie.setrole(actor)
-        actor.addability(Ability(Kill))
-        actor.addability(Ability(Inspect))
+    name = "Stalker"
+    abilities = Townie.abilities + [Ability(Kill), Ability(Inspect)]
+    power = 1
+
+class Skulker(RoleBase):
+    factions = [Town, Survivor]
+    name = "Skulker"
+    abilities = Townie.abilities + [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()], args={'action':Suicide(0, [])} )]
+    power = -0.1
+
+class Tmpl:
+    def __init__(self, role):
+        self.__class__ = RoleBase
+        self.abilities = copy.deepcopy(role.abilities)
+        self.factions = role.factions
+        self.name = role.name
+
+class TmplDay(Tmpl):
+    def __init__(self, role):
+        Tmpl.__init__(self, role)
+
+        for abi in self.abilities:
+            abi.phase = Day
+
+        self.name = "Day "+role.name
+
+class TmplOneShot:
+    def __init__(self, role):
+        Tmpl.__init__(self, role)
+
+        for abi in self.abilities:
+            if not abi.free:
+                abi.uses = Some(1)
+
+        self.name = "One-Shot "+role.name
+
+class TmplIncompetent:
+    def __init__(self, role):
+        Tmpl.__init__(self, role)
+
+        for abi in self.abilities:
+            if not abi.free:
+                abi.resolvers=[Ability.RandomSecret()]
+
+        self.truename = "Incompetent "+role.name
+        self.power = 0.1
+
+class TmplFail:
+    def __init__(self, role, fail):
+        Tmpl.__init__(self, role)
+
+        for abi in self.abilities:
+            if not abi.free:
+                abi.failure = fail
+
+        self.truename = "%d%% %s"%(fail * 100, role.name)
+        self.power = role.power * fail
+
+class TmplSanity:
+    def __init__(self, role, sanity):
+        Tmpl.__init__(self, role)
+
+        for abi in self.abilities:
+            abi.args['sanity'] = sanity
+
+        self.name = role.name
+
+        if sanity.name:
+            self.truename = sanity.name + " " + getname(role)
+        else:
+            self.truename = getname(role)
+
+        self.power = -0.1
+
+InsaneCop = TmplSanity(Cop, Insane())
+NaiveCop = TmplSanity(Cop, Naive())
+ParanoidCop = TmplSanity(Cop, Paranoid())
+StonedCop = TmplSanity(Cop, Stoned())
+RandomCop = TmplSanity(Cop, Random())
+
+OneShotVig = TmplOneShot(Vigilante)
+OneShotDayVig = TmplDay(OneShotVig)
+
+DayCop = TmplDay(Cop)
+
+IncCop = TmplIncompetent(Cop)
+IncJoat = TmplIncompetent(Joat)
+
+HalfVig = TmplFail(Vigilante, 0.5)
+FailVig = TmplFail(Vigilante, 0)
 
 def init():
     env = init.__globals__
@@ -378,9 +357,10 @@ def init():
     env['roles'] = {}
 
     for k,v in list(filter(lambda t:
-            type(t[1]) is type
+            (type(t[1]) is type
             and not t[1] is RoleBase
-            and issubclass(t[1], RoleBase),
+            and issubclass(t[1], RoleBase))
+            or (isinstance(t[1], RoleBase)),
                 env.items())):
         env['roles'][k] = v
 
@@ -392,4 +372,4 @@ init()
 
 def printroles():
     for k,v in faction.items():
-        print(k.name(), len(v), [x.name for x in v])
+        print(k.name, len(v), [getname(x) for x in v])

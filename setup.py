@@ -11,110 +11,72 @@ class Setup:
         maf = mafl.faction.Mafia()
         cult = mafl.faction.Cult()
         survivor = mafl.faction.Survivor()
-        sk = mafl.faction.Sk()
 
         self.rng.shuffle(self.players)
         n = len(self.players)
         print("setup n:",n)
 
         nscum = round(n * (1/4.5))
-        ntown = n - nscum
-        surv = []
+        neutrals = []
 
         r = self.rng.random()
         survchance = (6/5) - (21 * (nscum / n) / 5)
         print("r",r,"survchance",survchance)
         if r <= survchance:
-            surv = [survivor]
-        else:
-            surv = []
+            neutrals.append(survivor)
 
-        factions = chain(surv, [maf for _ in range(nscum)], cycle([town]))
-        for p, f in zip(self.players, factions):
+        r = self.rng.random()
+        skchance = survchance / 1.6
+        print("r",r,"skchance",skchance)
+        if r <= skchance:
+            sk = mafl.faction.Sk()
+            neutrals.append(sk)
+
+        baddies = maf
+        if n > 7:
+            if self.rng.random() > 0.9:
+                baddies = cult
+                if n > 9:
+                    nscum = 2
+                else:
+                    nscum = 1
+
+        scum = neutrals + [baddies for _ in range(nscum)]
+        ntown = n - (nscum + len(neutrals))
+        print("ntown", ntown)
+
+        scumroles = []
+        for p, f in zip(self.players, scum):
             p.faction = f
-            mafl.role.Townie.setrole(p)
+            fc = f.__class__
+#            r = self.rng.choice(list(filter(lambda x: x.basic, mafl.role.faction[fc])))
+            r = self.rng.choice(mafl.role.faction[fc])
+            scumroles.append(r)
+            p.setrole(r)
+            print("calling setrole for",p.name)
 
-#        if len(self.players) < 3:
-#            return False
-#
-#        if len(self.players) == 3:
-#            p = self.players.pop()
-#            p.faction = maf
-#            mafl.role.Townie.setrole(p)
-#            for p in self.players:
-#                p.faction = town
-#                mafl.role.Townie.setrole(p)
-#        elif len(self.players) == 4:
-#            p = self.players.pop()
-#            p.faction = maf
-#            mafl.role.Townie.setrole(p)
-#
-#            if self.rng.choice([True,False]): # 50/50 a doctor
-#                p = self.players.pop()
-#                p.faction = town
-#                mafl.role.Doctor.setrole(p)
-#
-#            for p in self.players:
-#                p.faction = town
-#                mafl.role.Townie.setrole(p)
-#        elif len(self.players) == 5:
-#            p = self.players.pop()
-#            p.faction = maf
-#            mafl.role.Townie.setrole(p)
-#
-#            if self.rng.choice([True,False]):
-#                p = self.players.pop()
-#                p.faction = town
-#                mafl.role.Doctor.setrole(p)
-#
-#            for p in self.players:
-#                p.faction = town
-#                mafl.role.Townie.setrole(p)
-#        elif len(self.players) == 6:
-#            p = self.players.pop()
-#            p.faction = maf
-#            p = self.players.pop()
-#            p.faction = maf
-#
-#            if self.rng.choice([True,False]):
-#                p = self.players.pop()
-#                p.faction = town
-#                mafl.role.Doctor.setrole(p)
-#            else:
-#                p = self.players.pop()
-#                p.faction = town
-#                mafl.role.Cop.setrole(p)
-#
-#            for p in self.players:
-#                p.faction = town
-#                mafl.role.Townie.setrole(p)
-#        elif len(self.players) == 7:
-#            p = self.players.pop()
-#            p.faction = maf
-#            p = self.players.pop()
-#            p.faction = maf
-#
-#            if self.rng.choice([True,False]):
-#                p = self.players.pop()
-#                p.faction = town
-#                mafl.role.Doctor.setrole(p)
-#
-#            if self.rng.choice([True,False]):
-#                p = self.players.pop()
-#                p.faction = town
-#                mafl.role.Cop.setrole(p)
-#
-#            for p in self.players:
-#                p.faction = town
-#                mafl.role.Townie.setrole(p)
-#        elif len(self.players) > 7:
-#            p = self.players.pop()
-#            p.faction = maf
-#            p = self.players.pop()
-#            p.faction = maf
-#
-#            for p in self.players:
-#                p.faction = town
-#                mafl.role.Townie.setrole(p)
+        scumpower = sum([x.power for x in scumroles])
+        print("scumpower",scumpower,[mafl.role.getname(x) for x in scumroles])
+
+        townroles = []
+        townpower = 0
+        for x in range(ntown):
+            if townpower > scumpower + 0.5:
+                r = self.rng.choice(list(filter(lambda x: x.power <= 0, mafl.role.faction[mafl.faction.Town])))
+                print("too much town power, picking bad role",mafl.role.getname(r))
+            elif townpower > len(townroles) * 0.2 or townpower > scumpower:
+                r = self.rng.choice(list(filter(lambda x: x.basic, mafl.role.faction[mafl.faction.Town])))
+                print("too much town power, picking basic role",mafl.role.getname(r))
+            else:
+                r = self.rng.choice(mafl.role.faction[mafl.faction.Town])
+            townroles.append(r)
+            townpower = sum([x.power for x in townroles])
+
+            p = self.players.pop()
+            p.faction = town
+            p.setrole(r)
+            print("calling setrole for",p.name)
+
+        print("townpower",townpower,[mafl.role.getname(x) for x in townroles])
 
         return True
