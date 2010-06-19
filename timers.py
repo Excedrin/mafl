@@ -22,4 +22,5 @@ class Timers:
         return self.remaining(name) < 0
 
     def dec(self, name):
-        self.timers[name] -= 1
+        if name in self.timers:
+            self.timers[name] -= 1

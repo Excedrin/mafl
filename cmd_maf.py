@@ -68,6 +68,12 @@ def run(bot, command, to, who, args):
         if args[1] == 'join' or args[1][1:] == 'join':
             state.fake[args[0]] = who
 
+    elif public and command == "forcep":
+        if len(args) >= 2:
+            run(bot, args[1], "bot", args[0], args[2:])
+        if args[1] == 'join' or args[1][1:] == 'join':
+            state.fake[args[0]] = who
+
     elif public and command == "forcenextphase":
         state.nextphase()
 

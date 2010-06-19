@@ -1,7 +1,40 @@
-import target
 import phase
 
 class Ability:
+# fixed targets
+    class User: # user specified target
+        forced = False
+        def gettargets(self, state, actor, target, slots):
+            return [state.slotbyname(target)]
+
+    class Self:
+        forced = True
+        def gettargets(self, state, actor, target, slots):
+            return [actor]
+
+    class EveryoneElse:
+        forced = True
+        def gettargets(self, state, actor, target, slots):
+            return [x for x in state.livingslots() if x != actor]
+
+    class Random:
+        forced = True
+        def gettargets(self, state, actor, target, slots):
+            nonself = Ability.EveryoneElse.gettargets(self, state, actor, target, slots)
+            return [state.rng.choice(nonself)]
+
+    # secretly replace target w/random target
+    class RandomSecret(Random):
+        forced = False
+
+    class ArgN:
+        forced = True
+        def __init__(self, n):
+            self.n = n
+        def gettargets(self, state, actor, target, slots):
+            return [slots[self.n]]
+
+# target restrictions
     class Dead:
         desc = "dead"
         def test(actor, x, state):
@@ -15,7 +48,11 @@ class Ability:
         def test(actor, x, state):
             return actor != x
 
-    def __init__(self, action, phase=phase.Night, uses=None, free=False, auto=False, public=False, ghost=False, restrict=[Living, NonSelf], args={}):
+    def __init__(self, action, phase=phase.Night, uses=None,
+                    free=False, auto=False, public=False, ghost=False,
+                    restrict=[Living, NonSelf], failure=0, name=None, 
+                    resolvers=[User()], args={}):
+
         self.action = action
         self.phase = phase
         self.uses = uses
@@ -26,6 +63,15 @@ class Ability:
         self.public = public
         self.ghost = ghost
         self.restrict = restrict
+        self.failure = failure
+        self.name = name
+        self.resolvers = resolvers
+
+    def name(self):
+        if self.name:
+            return self.name
+        else:
+            return self.action.name
 
 # it's the right phase, and (an unused action, with uses left, or a free action)
     def usable(self, player, state):
@@ -52,9 +98,7 @@ class Ability:
         self.used = False
 
     def use(self, state, public, player, targets):
-        if self.action.arity and len(targets) != self.action.arity.v:
-            err = "%s needs %d target(s) (%s)" %(self.action.name,self.action.arity,', '.join(targets))
-        elif not player.living and not self.ghost:
+        if not player.living and not self.ghost:
             err = "%s isn't usable when dead"%(self.action.name)
         elif self.ghost and player.living:
             err = "%s isn't usable when alive"%(self.action.name)
@@ -72,22 +116,42 @@ class Ability:
         else:
             actor = state.slotbyplayer(player)
 
-            targetresolver = self.args.get('targets', target.Target)
-            slots = targetresolver.gettargets(state, actor, targets)
+            arity = len(list(filter(lambda x: not x.forced, self.resolvers)))
+            print("arity",arity)
+            if len(targets) != arity:
+                err = "%s needs %d target(s) (%s)" %(self.action.name, arity,
+                                                ', '.join(targets))
+                return (False, err)
 
+            # initially use slots that user specified
+            slots = [state.slotbyname(x) for x in targets]
+
+            # check target restrictions
             if self.restrict:
                 for test in self.restrict:
                     if not all([test.test(actor, x, state) for x in slots]):
-                        return (False, "%s needs %s target(s) (%s)" %(self.action.name, test.desc, ', '.join(targets)))
+                        err = "%s needs %s target(s) (%s)" %(self.action.name, test.desc, ', '.join(targets))
+                        return (False, err)
+
+            resolved = []
+            # handle possibly forced targets
+            tmp = list(targets)
+            tmp.extend(["" for _ in range(len(self.resolvers))])
+            for resolver in self.resolvers:
+                target = tmp.pop(0)
+                resolved.extend(resolver.gettargets(state, actor, target, slots))
+
+            print("resolved",resolved)
 
             # finally good to go
-
             if not self.free:
                 self.used = True
                 if self.uses:
                     self.uses -= 1
 
-            state.enqueue(self.action(actor, slots, self.args))
+            # don't enqueue it if it fails
+            if state.rng.random() > self.failure:
+                state.enqueue(self.action(actor, resolved, self.args))
 
             return (True, "%s confirmed (%s)"%(self.action.name,', '.join(targets)))
         return (False, err)

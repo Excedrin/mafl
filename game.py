@@ -210,7 +210,6 @@ class Game:
             self.nextphase()
 
             self.timers.settimer('start', 307)
-            self.message(None, "game starts in %d seconds"%307)
 
     def wait(self):
         if self.phase == mafl.phase.Signups:
@@ -223,14 +222,15 @@ class Game:
             if now == "now":
                 self.nextphase()
             else:
-                self.timers.settimer('start', 11)
+                if self.timers.remaining('start') > 11:
+                    self.timers.settimer('start', 11)
 
     def tick(self):
         if self.phase == mafl.phase.Signups:
             remaining = self.timers.remaining('start')
             if remaining < 0:
                 self.nextphase()
-            elif remaining in (31,11):
+            elif remaining in (307,229,97,31,7):
                 self.timers.dec('start')
                 self.message(None, "game starts in %d seconds"%(remaining))
 
@@ -327,7 +327,8 @@ class Game:
         # phase changed!
         if self.phase != self.newphase:
             # reset timers
-            self.timers = timers.Timers()
+            if self.phase != mafl.phase.Idle:
+                self.timers = timers.Timers()
 
             if self.phase == mafl.phase.Signups:
                 self.setup = mafl.setup.Setup(self.rng, self.players)

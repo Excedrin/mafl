@@ -1,18 +1,21 @@
 from ability import Ability
 from actions import *
 from phase import *
-from target import *
 from sanity import *
 from faction import *
 
 class RoleBase:
     factions = [Town, Cult, Mafia, Sk, Survivor]
+    def setrole(actor):
+        pass
+#        actor.role.append()
 
 class Townie(RoleBase):
     def name():
         return "Townie"
     def setrole(actor):
-        actor.addability(Ability(Vote, Day, free=True, public=True))
+        RoleBase.setrole(actor)
+        actor.addability(Ability(Vote, Day, free=True, public=True, restrict=[Ability.Living]))
 
 class Vigilante(RoleBase):
     factions = [Town, Sk]
@@ -29,6 +32,14 @@ class DayVigilante(RoleBase):
     def setrole(actor):
         Townie.setrole(actor)
         actor.addability(Ability(Kill, Day))
+
+class CrazedFiend(RoleBase):
+    factions = [Town, Sk]
+    def name():
+        return "Crazed Fiend"
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Kill, Any, resolvers=[Ability.Random()] ))
 
 class OneShotVigilante(RoleBase):
     factions = [Town, Sk]
@@ -167,6 +178,14 @@ class Redirecter(RoleBase):
         Townie.setrole(actor)
         actor.addability(Ability(Redirect))
 
+class Magnet(RoleBase):
+    factions = [Town, Survivor, Mafia]
+    def name():
+        return "Magnet"
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Redirect, resolvers=[Ability.User(), Ability.Self()]))
+
 class Tracker(RoleBase):
     factions = [Town, Survivor, Mafia]
     def name():
@@ -196,6 +215,7 @@ class DoubleVoter(RoleBase):
     def name():
         return "Double Voter"
     def setrole(actor):
+        RoleBase.setrole(actor)
         actor.addability(Ability(Vote, Day, free=True, args={'maxvotes':2} ))
 
 class NonVoter(RoleBase):
@@ -203,6 +223,7 @@ class NonVoter(RoleBase):
     def name():
         return "Nonvoter"
     def setrole(actor):
+        RoleBase.setrole(actor)
         actor.addability(Ability(Vote, Day, free=True, args={'maxvotes':0} ))
 
 class ParanoidGunOwner(RoleBase):
@@ -252,6 +273,23 @@ class Commando(RoleBase):
     def setrole(actor):
         Townie.setrole(actor)
         actor.addability(Ability(Immune, Any, args={'immune':Kill(0,[])}))
+        actor.addability(Ability(Kill))
+
+class ChainsawMurderer(RoleBase):
+    factions = [Sk]
+    def name():
+        return "Chainsaw Murderer"
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(SuperKill))
+
+class Ninja(RoleBase):
+    factions = [Town, Sk]
+    def name():
+        return "Ninja"
+    def setrole(actor):
+        Townie.setrole(actor)
+        actor.addability(Ability(Immune, Any, args={'immune':Track(0,[])}))
         actor.addability(Ability(Kill))
 
 class Delayer(RoleBase):
@@ -354,4 +392,4 @@ init()
 
 def printroles():
     for k,v in faction.items():
-        print(k.name, len(v), [x.name for x in v])
+        print(k.name(), len(v), [x.name for x in v])
