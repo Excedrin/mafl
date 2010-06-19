@@ -62,7 +62,7 @@ class Ability:
     def __init__(self, action, phase=phase.Night, uses=None,
                     free=False, auto=False, public=False, ghost=False,
                     restrict=[Living, NonSelf], failure=0, name=None, 
-                    resolvers=[User()], args={}):
+                    resolvers=[User()], optargs=False, args={}):
 
         self.action = action
         self.phase = phase
@@ -75,8 +75,14 @@ class Ability:
         self.ghost = ghost
         self.restrict = restrict
         self.failure = failure
-        self.name = name
+
         self.resolvers = resolvers
+        self.optargs = optargs
+
+        if name:
+            self.name = name
+        else:
+            self.name = action.name
 
         if auto:
             for resolver in self.resolvers:
@@ -84,10 +90,7 @@ class Ability:
                     raise ValueError
 
     def getname(self):
-        if self.name:
-            return self.name
-        else:
-            return self.action.name
+        return self.name
 
 # it's the right phase, and (an unused action, with uses left, or a free action)
     def usable(self, player, state):
@@ -100,7 +103,8 @@ class Ability:
 
     def __str__(self):
         # instantiate an action to get it to format itself
-        desc = [str(self.action(0,[],self.args)), "(%s phase)" % self.phase.name]
+        act = self.action(0, [], self.args, rename=self.getname())
+        desc = [str(act), "(%s phase)" % self.phase.name]
         if self.auto:   
             desc.insert(0, "auto")
         if self.ghost:   
@@ -126,30 +130,33 @@ class Ability:
         return resolved
 
     def use(self, state, public, player, targets):
+        name = self.getname()
+
         if not player.living and not self.ghost:
-            err = "%s isn't usable when dead"%(self.action.name)
+            err = "%s isn't usable when dead"%(name)
         elif self.ghost and player.living:
-            err = "%s isn't usable when alive"%(self.action.name)
+            err = "%s isn't usable when alive"%(name)
         elif self.public != public:
-            err = "%s must be used %s" % (self.action.name,
+            err = "%s must be used %s" % (name,
                 "publicly" if self.public else "privately")
         elif self.auto:
-            err = "%s is an auto action" % self.action.name
+            err = "%s is an auto action" % name
         elif not self.free and self.used:
-            err = "%s has already been used" % self.action.name
+            err = "%s has already been used" % name
         elif not self.free and self.uses and self.uses.v < 1:
-            err = "%s has no uses left" % self.action.name
+            err = "%s has no uses left" % name
         elif not issubclass(self.phase, state.phase):
-            err = "%s can't be used during this phase" % self.action.name
+            err = "%s can't be used during this phase" % name
         else:
             actor = state.slotbyplayer(player)
 
-            arity = len(list(filter(lambda x: not x.forced, self.resolvers)))
-            print("arity",arity)
-            if len(targets) != arity:
-                err = "%s needs %d target(s) (%s)" %(self.action.name, arity,
-                                                ', '.join(targets))
-                return (False, err)
+            if not self.optargs:
+                arity = len(list(filter(lambda x: not x.forced, self.resolvers)))
+                print("arity",arity)
+                if len(targets) != arity:
+                    err = "%s needs %d target(s) (%s)" %(name, arity,
+                                                    ', '.join(targets))
+                    return (False, err)
 
             # initially use slots that user specified
             slots = [state.slotbyname(x) for x in targets]
@@ -158,7 +165,7 @@ class Ability:
             if self.restrict:
                 for test in self.restrict:
                     if not all([test.test(actor, x, state) for x in slots]):
-                        err = "%s needs %s target(s) (%s)" %(self.action.name, test.desc, ', '.join(targets))
+                        err = "%s needs %s target(s) (%s)" %(name, test.desc, ', '.join(targets))
                         return (False, err)
 
             resolved = self.resolvetargets(state, actor, targets, slots)
@@ -173,7 +180,7 @@ class Ability:
             if state.rng.random() > self.failure:
                 state.enqueue(self.action(actor, resolved, self.args))
 
-            return (True, "%s confirmed (%s)"%(self.action.name,', '.join(targets)))
+            return (True, "%s (%s) confirmed"%(name,', '.join(targets)))
         return (False, err)
 
     def useauto(self, state, phase, actor):
@@ -182,6 +189,7 @@ class Ability:
                 self.uses.v -= 1
 
             resolved = self.resolvetargets(state, actor, [], [])
+            print("useauto",actor,resolved)
             return self.action(actor, resolved, self.args)
         else:
             return None

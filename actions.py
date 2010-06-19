@@ -7,21 +7,31 @@ import copy
 
 class Untrackable:
     pass
+class NoImmune:
+    pass
+class NoTrigger:
+    pass
 
 class Action:
     name = "none"
     priority = 99999999
 
-    def __init__(self, actor, targets, args={}):
+    def __init__(self, actor, targets, args={}, rename=None):
         self.actor = actor
         self.targets = targets
         self.args = args
+        if rename:
+            self.name = rename
+        else:
+            self.name = self.__class__.name
 
     def __lt__(self, other):
         return self.__class__.priority < other.__class__.priority
 
+    def getname(self):
+        return self.name
     def __str__(self):
-        return self.__class__.name
+        return self.getname()
 #        return("Action: %s %s %s" % (self.actor, self.__class__.name, self.targets))
 
     def resolve(self, state):
@@ -40,7 +50,7 @@ class Message(Action, Untrackable):
 
         return state.queue
 
-class Vote(Action, Untrackable):
+class Vote(Action, Untrackable, NoImmune, NoTrigger):
     name = "vote"
     priority = 99
 
@@ -336,7 +346,9 @@ class Immune(Action):
                 if target in act.targets:
 
                     for immuneact in immune:
-                        if operator(isinstance(act, immuneact)):
+                        if isinstance(act, NoImmune):
+                            newqueue.enqueue(act)
+                        elif operator(isinstance(act, immuneact)):
                             state.resqueue.enqueue(act)
                         else:
                             newqueue.enqueue(act)
@@ -346,7 +358,7 @@ class Immune(Action):
         return newqueue
 
     def __str__(self):
-        msg = [self.__class__.name]
+        msg = [self.getname()]
         if 'not' in self.args:
             msg.insert(0, 'not')
         if 'immune' in self.args:
@@ -366,7 +378,7 @@ class Reflex(Action):
             for act in state.queue:
                 if target in act.targets:
                     for trigger in triggers:
-                        if isinstance(act, trigger):
+                        if not isinstance(act, NoTrigger) and isinstance(act, trigger):
                             reflexact = self.args.get('action', act)
                             newact = copy.deepcopy(reflexact)
                             newact.actor = target
@@ -376,7 +388,7 @@ class Reflex(Action):
         return state.queue
 
     def __str__(self):
-        msg = [self.__class__.name]
+        msg = [self.getname()]
         if 'action' in self.args:
             msg.append(self.args['action'].name)
         return " ".join(msg)

@@ -114,6 +114,9 @@ def run(bot, command, to, who, args):
     elif public and command == "go":
         state.go(args[0] if args else None)
 
+    elif public and command == "starttest":
+        state.gotest(to, who, args)
+
 # role commands
     elif command:
         print("game command %s args %s"%(command,args))

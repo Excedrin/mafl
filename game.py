@@ -496,7 +496,7 @@ class Game:
         self.phase = mafl.phase.Signups
         self.nextphase()
 
-    def testsetup(self, args):  
+    def testsetup(self, args):
         if len(args) >= 1 and int(args[0]):
             n = int(args[0])
             print("testsetup for ",n)
@@ -514,3 +514,14 @@ class Game:
                 for k,v in byfac.items():
                     msg.append("%s: %s" %(k, ", ".join(v)))
                 self.message(None, "; ".join(msg))
+
+    def gotest(self, to, who, args):
+        if len(args) >= 1 and int(args[0]) < 26:
+            self.channel = to
+            n = int(args[0])
+            print("runtest for ",n)
+            for name in [chr(ord('a') + x) for x in range(n)]:
+                self.newplayer(name)
+                self.fake[name] = who
+            self.phase = mafl.phase.Signups
+            self.nextphase(mafl.phase.Day)

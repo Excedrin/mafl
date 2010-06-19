@@ -17,7 +17,7 @@ class Townie(RoleBase):
     basic = True
     factions = [Town]
     name = "Townie"
-    abilities = [Ability(Vote, Day, free=True, public=True, restrict=[Ability.Living])]
+    abilities = [Ability(Vote, Day, free=True, public=True, optargs=True, restrict=[Ability.Living])]
     power = 0
 
 class Mafioso(RoleBase):
@@ -117,13 +117,13 @@ class Redirecter(RoleBase):
 class Magnet(RoleBase):
     factions = [Town, Survivor, Mafia]
     name = "Magnet"
-    abilities = Townie.abilities + [Ability(Redirect, resolvers=[Ability.User(), Ability.Self()])]
-    power = 0.5
+    abilities = Townie.abilities + [Ability(Redirect, name="attract", resolvers=[Ability.User(), Ability.Self()])]
+    power = 0.3
 
 class Randomizer(RoleBase):
     factions = [Town, Survivor, Mafia]
     name = "Randomizer"
-    abilities = Townie.abilities + [Ability(Redirect, resolvers=[Ability.User(), Ability.Random()])]
+    abilities = Townie.abilities + [Ability(Redirect, name="randomize", resolvers=[Ability.User(), Ability.Random()])]
     power = 0.3
 
 class Tracker(RoleBase):
@@ -147,13 +147,13 @@ class NightWatchman(RoleBase):
 class DoubleVoter(RoleBase):
     factions = [Town, Survivor]
     name = "Double Voter"
-    abilities = Townie.abilities + [Ability(Vote, Day, free=True, public=True, args={'maxvotes':2} )]
+    abilities = Townie.abilities + [Ability(Vote, Day, free=True, public=True, optargs=True, args={'maxvotes':2} )]
     power = 0.6
 
 class NonVoter(RoleBase):
     factions = [Town]
     name = "Nonvoter"
-    abilities = Townie.abilities + [Ability(Vote, Day, free=True, public=True, args={'maxvotes':0} )]
+    abilities = Townie.abilities + [Ability(Vote, Day, free=True, public=True, optargs=True, args={'maxvotes':0} )]
     power = -0.3
 
 class ParanoidGunOwner(RoleBase):
