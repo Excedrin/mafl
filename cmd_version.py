@@ -1,4 +1,4 @@
-VERSION = "0.21"
+VERSION = "0.22"
 
 def run(bot, command, to, who, args):
 #    if to[0] == '#' and command == "%version":

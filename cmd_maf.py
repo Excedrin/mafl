@@ -52,7 +52,13 @@ def run(bot, command, to, who, args):
     if state == None:
         state = game.Game(rng)
 
-    if command == "join":
+    if command == "help":
+        bot.reply("normal commands: %s" % ", ".join(["join","start","go","wait",
+                "done","role","testsetup","living","votes","phase","replace"]))
+        bot.reply("mod commands: %s" % ", ".join(["reset","newsetup","force","forcep",
+                "forcenextphase","showsetup","setrole"]))
+
+    elif command == "join":
         state.join(who)
 
     elif command == "done":

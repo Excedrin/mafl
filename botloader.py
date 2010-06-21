@@ -32,7 +32,7 @@ if 'network' in cfg:
 ####
 ####
 
-b = bot.Bot(cfg['server'], int(cfg['port']), cfg['nick'], cfg['user'], cfg['realname'])
+b = bot.Bot(cfg)
 
 quit = False
 
@@ -48,8 +48,6 @@ while not quit:
 
     if not quit:
         try:
-#            bot = reload(bot)
             r.poll()
-            b = bot.Bot(b)
         except Exception as e:
             print("failed to reload: %s" % e)

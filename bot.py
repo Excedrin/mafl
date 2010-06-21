@@ -64,46 +64,41 @@ def stripcolors(s):
 MAXSEND = 1000
 MAXCMDS = 6
 class Bot():
-    def __init__(self, *args):
-        if len(args) == 5:
-            (host, port, nick, ident, name) = args
-            self.server = None
+    def __init__(self, cfg):
+        self.cfg = cfg
 
-            self.s = socket.socket()
-            self.connected = False
+        self.s = socket.socket()
+        self.connected = False
 
-            self.host = host
-            self.port = port
-            self.nick = nick
-            self.ident = ident
-            self.name = name
+        self.server = cfg['server']
+        self.port = int(cfg['port'])
+        self.nick = cfg['nick']
+        self.user = cfg['user']
+        self.realname = cfg['realname']
 
-            self.exit = False
-            self.reload = False
+        self.servernick = None
 
-            self.state = {}
+        self.exit = False
+        self.reload = False
 
-            self.joined = False
+        self.state = {}
 
-            self.rng = random.Random()
+        self.joined = False
+
+        self.rng = random.Random()
 
 # ratelimit crap
-            self.lasttime = 0
+        self.lasttime = 0
 
-            self.lastsent = 0
-            self.sent = 0
-            self.sentrate = 0
+        self.lastsent = 0
+        self.sent = 0
+        self.sentrate = 0
 
-            self.lastrecvd = 0
-            self.recvd = 0
-            self.recvrate = 0
+        self.lastrecvd = 0
+        self.recvd = 0
+        self.recvrate = 0
 
-            self.prev = {}
-
-        if len(args) == 1:
-            self.state = {}
-            instance = args[0]
-            self.__dict__ = copy.copy(instance.__dict__)
+        self.prev = {}
 
         self.setupcmds()
 
@@ -136,22 +131,22 @@ class Bot():
     def connect(self):
         if not self.connected:
             self.connected = True
-            self.s.connect((self.host, self.port))
+            self.s.connect((self.server, self.port))
             self.send('NICK %s' %self.nick)
-            self.send('USER %s %s %s :%s' %(self.ident,self.ident,self.ident,self.name))
+            self.send('USER %s %s %s :%s' %(self.user,self.user,self.user,self.realname))
             print("connected")
 
     def parse(self, line):
         fields = line.split(" ")
 #        print(fields)
-        if not self.server:
-            self.server = fields[0]
+        if not self.servernick:
+            self.servernick = fields[0]
         if fields[0] == 'PING':
             msg = 'PONG ' + " ".join(fields[1:])
 #            print('replying: ' + msg)
             self.send(msg)
         else:
-            if fields[0] != self.server:
+            if fields[0] != self.servernick:
                 if fields[0] in self.prev:
                     self.prev[fields[0]] += 1
                     if self.sentrate > MAXSEND and self.prev[fields[0]] == MAXCMDS:
@@ -177,7 +172,7 @@ class Bot():
 #                if fields[2] == self.nick and msg == "%reload":
                     self.reload = True
                     return
-                if msg == "%quit":
+                if msg == ("%quit " + self.cfg['quitpass']):
 #                if fields[2] == self.nick and msg == "%quit":
                     self.exit = True
                     return
