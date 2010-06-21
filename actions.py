@@ -332,7 +332,7 @@ class Guard(Action):
 # an example would be Ascetic, which is immune to all actions except kills
 class Immune(Action):
     name = "immune"
-    priority = 8
+    priority = 9
 
     def resolve(self, state):
         state.resolved(self)
@@ -370,7 +370,7 @@ class Immune(Action):
 
 class Reflex(Action, NoImmune, NoTrigger):
     name = "reflex"
-    priority = 109
+    priority = 8
 
     def resolve(self, state):
         triggers = self.args.get('triggers', [Action])
@@ -387,10 +387,18 @@ class Reflex(Action, NoImmune, NoTrigger):
                             newact.targets = [act.actor]
                             newacts.append(newact)
 
+        resolved = False
         for newact in newacts:
             state.queue.enqueue(newact)
+            resolved = True
 
-        state.resolved(self)
+        if resolved:
+            state.resolved(self)
+        elif not isinstance(self, Reflex2):
+            newreflex = copy.deepcopy(self)
+            newreflex.__class__ = Reflex2
+            print("enqueue newreflex",newreflex)
+            state.queue.enqueue(newreflex)
 
         return state.queue
 
@@ -399,6 +407,9 @@ class Reflex(Action, NoImmune, NoTrigger):
         if 'action' in self.args:
             msg.append(self.args['action'].name)
         return " ".join(msg)
+
+class Reflex2(Reflex):
+    priority = 101
 
 class Hide(Action):
     name = "hide"

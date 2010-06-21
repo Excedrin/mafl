@@ -14,6 +14,9 @@ class Setup:
 
         self.rng.shuffle(self.players)
         n = len(self.players)
+        if n < 3:
+            return False
+
         print("setup n:",n)
 
         nscum = round(n * (1/4.5))

@@ -10,7 +10,7 @@ class Mqueue:
     def __bool__(self):
         return bool(self.heap)
     def __str__(self):
-        return ("queue with %s items" % len(self.heap))
+        return ("queue with %s items: %s" % (len(self.heap), self.heap))
     def __add__(self, other):
         return heapq.merge(self.heap, other.heap)
     def __len__(self):

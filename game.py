@@ -112,6 +112,8 @@ class Game:
 
     def resolve(self):
         if self.queue:
+            if self.verbose:
+                print("resolve",self.queue)
             self.queue.merge(self.autoqueue)
             count = len(self.queue) + 10
             if self.verbose:
@@ -130,6 +132,11 @@ class Game:
     def resetresolved(self):
         self.resqueue = mafl.Mqueue()
 
+    def resetqueues(self):
+        self.autoqueue = mafl.Mqueue()
+        self.resqueue = mafl.Mqueue()
+        self.queue = mafl.Mqueue()
+
     def resetvotes(self):
         self.votes = {}
 
@@ -141,6 +148,12 @@ class Game:
 
     def resetout(self):
         self.out = []
+
+    def startphase(self):
+        self.resetqueues()
+        self.resetuses()
+        self.resetvotes()
+        self.useautoabilities()
 
     def resetphase(self):
         self.resetuses()
@@ -362,11 +375,7 @@ class Game:
                 self.phasemsg()
                 self.livingmsg()
 
-            self.resetresolved()
-            self.resetuses()
-            self.resetvotes()
-
-            self.useautoabilities()
+            self.startphase()
 
         ret = copy.deepcopy(self.out)
 
