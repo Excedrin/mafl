@@ -53,10 +53,10 @@ def run(bot, command, to, who, args):
         state = game.Game(rng)
 
     if command == "help":
-        bot.reply("normal commands: %s" % ", ".join(["join","start","go","wait",
-                "done","role","testsetup","living","votes","phase","replace"]))
-        bot.reply("mod commands: %s" % ", ".join(["reset","newsetup","force","forcep",
-                "forcenextphase","showsetup","setrole"]))
+        bot.reply(to, who, "normal commands: %s" % ", ".join(["join","start","go",
+                "wait","done","role","testsetup","living","votes","phase","replace"]))
+        bot.reply(to, who, "mod commands: %s" % ", ".join(["reset",
+                "force","forcep","forcenextphase","showsetup","setrole"]))
 
     elif command == "join":
         state.join(who)
@@ -68,8 +68,6 @@ def run(bot, command, to, who, args):
         state.fullrolepm(who)
 
 # mod commands
-    elif public and command == "newsetup":
-        state.newsetup()
     elif public and command == "force":
         if len(args) >= 2:
             run(bot, args[1], to, args[0], args[2:])

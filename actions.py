@@ -483,7 +483,8 @@ class Redirect(Action):
 
         newqueue = Mqueue()
         for act in state.queue:
-            if act.actor == source:
+            # don't redirect self targeted actions
+            if act.actor == source and act.targets[0] != act.actor:
                 newact = copy.deepcopy(act)
                 newact.targets[0] = dest
 #                print("newact:",newact)

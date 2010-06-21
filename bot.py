@@ -120,7 +120,7 @@ class Bot():
         if to and to[0] == '#':
             self.privmsg(to, msg)
         else:
-            self.privmsg(who, msg)
+            self.notice(who, msg)
 
     def get(self, key):
         return self.state.get(key)
