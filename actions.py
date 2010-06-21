@@ -290,11 +290,11 @@ class Friend(Action):
 
 class Guard(Action):
     class Both:
-        pass
+        name = "(you die in place of target and attacker dies)"
     class Other:
-        pass
+        name = "(attacker dies)"
     class Self:
-        pass
+        name = "(you die in place of target)"
 
     name = "guard"
     priority = 40
@@ -302,7 +302,7 @@ class Guard(Action):
     def resolve(self, state):
         state.resolved(self)
 
-        guard = self.args.get('guard', Both)
+        guard = self.args.get('guard', Guard.Both)
 
         killfound = False
         for target in self.targets:
@@ -320,6 +320,11 @@ class Guard(Action):
                     killfound = True
         return newqueue
 
+    def __str__(self):
+        guard = self.args.get('guard', Guard.Both)
+        guard.name
+        msg = [self.getname(), guard.name]
+        return " ".join(msg)
 
 # uses two keys in args:
 # 'immune' a list of classes that this action will nullify

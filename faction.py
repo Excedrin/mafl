@@ -5,7 +5,10 @@ class Faction(Actor):
         Actor.__init__(self)
         self.instance = number
     def __str__(self):
-        return "%s%d" %(self.__class__.name, self.instance)
+        if self.instance != 1:
+            return "%s%d" %(self.__class__.name, self.instance)
+        else:
+            return self.__class__.name
     def rolepm(self, state):
         return "faction baseclass"
 

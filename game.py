@@ -99,8 +99,11 @@ class Game:
         self.name[slot] = name
         self.players.append(mafl.Player(name))
 
-    def join(self, name):
-        if self.phase == mafl.phase.Idle or self.phase == mafl.phase.Signups:
+    def join(self, channel, name):
+        if self.phase == mafl.phase.Idle:
+            self.newplayer(name)
+            self.start(channel)
+        elif self.phase == mafl.phase.Signups:
             self.newplayer(name)
 
     def enqueue(self, action):
@@ -361,8 +364,9 @@ class Game:
                         player = self.playerbyslot(slot)
                         self.message(name, player.fullrolepm(self))
                 else:
-                    self.message("Failed to assign roles")
-                    self.reset()
+                    self.message(None, "Failed to assign roles, canceled game")
+                    self.nextphase = mafl.phase.Idle
+#                    self.reset()
 
             self.undelay()
 
@@ -524,17 +528,17 @@ class Game:
             if self.setup.setroles():
                 byfac = {}
                 for p in fakeplayers:
-                    if p.faction.name in byfac:
-                        byfac[p.faction.name].append(p.truename)
+                    if str(p.faction) in byfac:
+                        byfac[str(p.faction)].append(p.truename)
                     else:
-                        byfac[p.faction.name] = [p.truename]
+                        byfac[str(p.faction)] = [p.truename]
                 msg = []
                 for k,v in byfac.items():
                     msg.append("%s: %s" %(k, ", ".join(v)))
                 return "; ".join(msg)
 
     def gotest(self, to, who, args):
-        if len(args) >= 1 and int(args[0]) < 26:
+        if len(args) >= 1 and int(args[0]) < 26 and self.phase == mafl.phase.Idle:
             self.verbose = True
             self.channel = to
             n = int(args[0])

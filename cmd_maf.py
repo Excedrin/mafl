@@ -56,10 +56,10 @@ def run(bot, command, to, who, args):
         bot.reply(to, who, "normal commands: %s" % ", ".join(["join","start","go",
                 "wait","done","role","testsetup","living","votes","phase","replace"]))
         bot.reply(to, who, "mod commands: %s" % ", ".join(["reset",
-                "force","forcep","forcenextphase","showsetup","setrole"]))
+                "force","forcep","forcenextphase","showsetup","setrole","starttest"]))
 
-    elif command == "join":
-        state.join(who)
+    elif public and command == "join":
+        state.join(to, who)
 
     elif command == "done":
         state.done(who)
