@@ -514,7 +514,7 @@ class Game:
         self.phase = mafl.phase.Signups
         self.nextphase()
 
-    def testsetup(self, public, who, args):
+    def testsetup(self, args):
         if len(args) >= 1 and int(args[0]):
             n = int(args[0])
             print("testsetup for ",n)
@@ -531,7 +531,7 @@ class Game:
                 msg = []
                 for k,v in byfac.items():
                     msg.append("%s: %s" %(k, ", ".join(v)))
-                self.message(None if public else who, "; ".join(msg))
+                return "; ".join(msg)
 
     def gotest(self, to, who, args):
         if len(args) >= 1 and int(args[0]) < 26:

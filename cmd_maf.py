@@ -102,7 +102,7 @@ def run(bot, command, to, who, args):
 
 # informational commands
     elif command == "testsetup":
-        state.testsetup(args)
+        bot.reply(to, who, state.testsetup(args))
 # public informational commands
     elif public and command == "living":
         state.livingmsg()
