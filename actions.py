@@ -12,14 +12,14 @@ class NoImmune:
 class NoTrigger:
     pass
 
-class Action:
+class ActionBase:
     name = "none"
     priority = 99999999
 
     def __init__(self, actor, targets, args={}, rename=None):
         self.actor = actor
         self.targets = targets
-        self.args = args
+        self.args = copy.deepcopy(args)
         if rename:
             self.name = rename
         else:
@@ -30,12 +30,16 @@ class Action:
 
     def getname(self):
         return self.name
+
     def __str__(self):
         return self.getname()
 #        return("Action: %s %s %s" % (self.actor, self.__class__.name, self.targets))
 
     def resolve(self, state):
         return state.queue
+
+class Action(ActionBase):
+    pass
 
 class Message(Action, Untrackable):
     name = "message"
@@ -90,14 +94,13 @@ class Kill(Action):
 
     def resolve(self, state):
         state.resolved(self)
+        print("kill", repr(self), self.args)
         for slot in self.targets:
             player = state.playerbyslotbus(slot)
             if player.living:
                 player.living = False
                 print("kill resolved (%s killed by %s)" % (player.name, self.actor))
-                how = "was killed"
-                if 'how' in self.args:
-                    how = self.args['how']
+                how = self.args.get("how", "was killed")
                 state.message(None, "%s (%s) %s"%(player.name, player.flip(), how))
                 state.resetvotes()
 
@@ -110,7 +113,7 @@ class SuperKill(Action):
     def resolve(self, state):
         return Kill.resolve(self, state)
 
-class Lynch(Action):
+class Lynch(ActionBase):
     name = "lynch"
     priority = 70
 
@@ -119,7 +122,7 @@ class Lynch(Action):
         state.votecount(True)
         return Kill.resolve(self, state)
 
-class Suicide(Action):
+class Suicide(Action, NoTrigger, NoImmune):
     name = "suicide"
     priority = 70
 
@@ -128,7 +131,7 @@ class Suicide(Action):
         self.args['how'] = 'comitted suicide'
         return Kill.resolve(self, state)
 
-class PoisonKill(Action):
+class PoisonKill(Action, NoTrigger):
     name = "poisonkill"
     priority = 70
 
@@ -365,25 +368,29 @@ class Immune(Action):
             msg.append(", ".join([x.name for x in self.args['immune']]))
         return " ".join(msg)
 
-class Reflex(Action):
+class Reflex(Action, NoImmune, NoTrigger):
     name = "reflex"
-    priority = 9
+    priority = 109
 
     def resolve(self, state):
-        state.resolved(self)
-
         triggers = self.args.get('triggers', [Action])
 
+        newacts = []
         for target in self.targets:
-            for act in state.queue:
-                if target in act.targets:
+            for act in state.queue + state.resqueue:
+                if act.actor != self.actor and target in act.targets:
                     for trigger in triggers:
                         if not isinstance(act, NoTrigger) and isinstance(act, trigger):
                             reflexact = self.args.get('action', act)
                             newact = copy.deepcopy(reflexact)
                             newact.actor = target
                             newact.targets = [act.actor]
-                            state.queue.enqueue(newact)
+                            newacts.append(newact)
+
+        for newact in newacts:
+            state.queue.enqueue(newact)
+
+        state.resolved(self)
 
         return state.queue
 

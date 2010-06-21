@@ -13,6 +13,8 @@ class Mqueue:
         return ("queue with %s items" % len(self.heap))
     def __add__(self, other):
         return heapq.merge(self.heap, other.heap)
+    def __len__(self):
+        return len(self.heap)
     def merge(self, other):
         self.heap = list(heapq.merge(self.heap, other.heap))
     def pop(self):

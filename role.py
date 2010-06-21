@@ -266,6 +266,18 @@ class Skulker(RoleBase):
     abilities = Townie.abilities + [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()], args={'action':Suicide(0, [])} )]
     power = -0.1
 
+class SuperSaint(RoleBase):
+    factions = [Town, Survivor]
+    name = "Super-Saint"
+    abilities = Townie.abilities + [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()], args={'action':Kill(0, [], args={'how':'was killed by an angry mob'}), 'triggers':[Lynch]} )]
+    power = 0.3
+
+class Bomb(RoleBase):
+    factions = [Town, Survivor]
+    name = "Bomb"
+    abilities = Townie.abilities + [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()], args={'action':Kill(0, [], args={'how':'was killed by an explosion'}), 'triggers':[Lynch, Kill, SuperKill]} )]
+    power = 0.3
+
 class Tmpl:
     def __init__(self, role):
         self.__class__ = RoleBase

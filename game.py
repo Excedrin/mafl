@@ -37,6 +37,7 @@ class Game:
         self.fake = {}
 
         self.rng = rng
+        self.verbose = False
 
     def message(self, who, message):
         if who in self.fake:
@@ -109,20 +110,22 @@ class Game:
     def resolved(self, action):
         self.resqueue.enqueue(action)
 
-    def resolve(self, verbose=False):
+    def resolve(self):
         if self.queue:
             self.queue.merge(self.autoqueue)
-            if verbose:
-                print("resolve")
-            while self.queue:
-                if verbose:
+            count = len(self.queue) + 10
+            if self.verbose:
+                print("resolve",count)
+            while self.queue and count > 0:
+                count -= 1
+                if self.verbose:
                     print("resolve q:", self.queue)
                 act = self.queue.pop()
-                if verbose:
+                if self.verbose:
                     print("resolve act:", act)
                 self.queue = act.resolve(self)
-            if verbose:
-                print("resolve done")
+            if self.verbose:
+                print("resolve done",count)
 
     def resetresolved(self):
         self.resqueue = mafl.Mqueue()
@@ -290,13 +293,16 @@ class Game:
 
         self.delayqueue = newqueue
 
+    def useautoability(self, player):
+        slot = self.slotbyplayer(player)
+        abilities = player.allabilities()
+        for action in filter(None, map(lambda x: x.useauto(self, self.phase, slot), abilities)):
+            print("enqueue(auto)",action)
+            self.autoqueue.enqueue(action)
+
     def useautoabilities(self):
         for player in self.players:
-            slot = self.slotbyplayer(player)
-            abilities = player.allabilities()
-            for action in filter(None, map(lambda x: x.useauto(self, self.phase, slot), abilities)):
-                print("enqueue(auto)",action)
-                self.autoqueue.enqueue(action)
+            self.useautoability(player)
 
     def run(self):
         done = 0
@@ -430,6 +436,9 @@ class Game:
                 player.addrole(newrole)
             else:
                 player.setrole(newrole)
+
+            self.useautoability(player)
+
             self.message(None, "%s role set"%p1)
             return True
         elif not player:
@@ -496,7 +505,7 @@ class Game:
         self.phase = mafl.phase.Signups
         self.nextphase()
 
-    def testsetup(self, args):
+    def testsetup(self, public, who, args):
         if len(args) >= 1 and int(args[0]):
             n = int(args[0])
             print("testsetup for ",n)
@@ -513,10 +522,11 @@ class Game:
                 msg = []
                 for k,v in byfac.items():
                     msg.append("%s: %s" %(k, ", ".join(v)))
-                self.message(None, "; ".join(msg))
+                self.message(None if public else who, "; ".join(msg))
 
     def gotest(self, to, who, args):
         if len(args) >= 1 and int(args[0]) < 26:
+            self.verbose = True
             self.channel = to
             n = int(args[0])
             print("runtest for ",n)
