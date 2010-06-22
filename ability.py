@@ -67,7 +67,7 @@ class Ability:
     def __init__(self, action, phase=phase.Night, uses=None,
                     free=False, auto=False, public=False, ghost=False,
                     restrict=[Living, NonSelf], failure=0, name=None, 
-                    resolvers=[User()], optargs=False, args={}):
+                    resolvers=[User()], optargs=False, untrackable=False, args={}):
 
         self.action = action
         self.phase = phase
@@ -83,6 +83,8 @@ class Ability:
 
         self.resolvers = resolvers
         self.optargs = optargs
+
+        self.untrackable = untrackable
 
         if name:
             self.name = name

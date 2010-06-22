@@ -227,7 +227,7 @@ class ChainsawMurderer(RoleBase):
 class Ninja(RoleBase):
     factions = [Town, Sk]
     name = "Ninja"
-    abilities = Townie.abilities + [Ability(Immune, Any, auto=True, resolvers=[Ability.Self()], args={'immune':[Track]}), Ability(Kill)]
+    abilities = Townie.abilities + [Ability(Kill, args={'untrackable':True})]
     def power(x):
         return 0.71
 

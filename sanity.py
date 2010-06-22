@@ -1,9 +1,9 @@
-import mafl
 import random
+import faction
 
 class Sanity:
     name = ""
-    def __init__(self, factions=[mafl.faction.Town, mafl.faction.Mafia]):
+    def __init__(self, factions=[faction.Town, faction.Mafia]):
         self.factions = factions
     def result(self, p):
         notfaction = []
@@ -36,7 +36,7 @@ class Insane(Sanity):
 
 class Paranoid(Sanity):
     name = "Paranoid"
-    def __init__(self, factions=[mafl.faction.Mafia]):
+    def __init__(self, factions=[faction.Mafia]):
         self.factions = factions
     def result(self, p):
         f = random.choice(self.factions)
@@ -44,7 +44,7 @@ class Paranoid(Sanity):
 
 class Naive(Paranoid):
     name = "Naive"
-    def __init__(self, factions=[mafl.faction.Town]):
+    def __init__(self, factions=[faction.Town]):
         self.factions = factions
     def result(self, p):
         return Paranoid.result(self, p)
@@ -56,7 +56,7 @@ class Stoned(Sanity):
 
 class Random(Stoned, Naive):
     name = "Random"
-    def __init__(self, factions=[mafl.faction.Town, mafl.faction.Mafia]):
+    def __init__(self, factions=[faction.Town, faction.Mafia]):
         self.factions = factions
     def result(self, p):
         if random.choice((True,False)):
@@ -70,6 +70,7 @@ class Rolecop(Sanity):
         return p.role
 
 if __name__ == "__main__":
+    import mafl
     maf = mafl.Player("maf")
     maf.faction = mafl.faction.Mafia()
     town = mafl.Player("town")

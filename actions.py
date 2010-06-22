@@ -1,20 +1,16 @@
-import mafl
 from mafqueue import Mqueue
 import faction
 import sanity
 from misc import Some
 import copy
 
-class Untrackable:
-    pass
-class NoImmune:
-    pass
-class NoTrigger:
-    pass
-
 class ActionBase:
     name = "none"
     priority = 99999999
+
+    untrackable = False
+    noimmune = False
+    notrigger = False
 
     def __init__(self, actor, targets, args={}, rename=None):
         self.actor = actor
@@ -22,8 +18,9 @@ class ActionBase:
         self.args = copy.deepcopy(args)
         if rename:
             self.name = rename
-        else:
-            self.name = self.__class__.name
+
+        if 'untrackable' in args:
+            self.untrackable = args['untrackable']
 
     def __lt__(self, other):
         return self.__class__.priority < other.__class__.priority
@@ -41,9 +38,11 @@ class ActionBase:
 class Action(ActionBase):
     pass
 
-class Message(Action, Untrackable):
+class Message(Action):
     name = "message"
     priority = 100
+
+    untrackable = True
 
     def resolve(self, state):
         if 'msg' in self.args:
@@ -54,9 +53,14 @@ class Message(Action, Untrackable):
 
         return state.queue
 
-class Vote(Action, Untrackable, NoImmune, NoTrigger):
+# priority here probably doesn't matter since it's going to be a day ability usually
+class Vote(Action):
     name = "vote"
     priority = 99
+
+    untrackable = True
+    noimmune = True
+    notrigger = True
 
     def resolve(self, state):
         state.resolved(self)
@@ -77,7 +81,7 @@ class Inspect(Action):
     def resolve(self, state):
         state.resolved(self)
 
-        default = sanity.Sane([mafl.faction.Mafia, mafl.faction.Town])
+        default = sanity.Sane([faction.Mafia, faction.Town])
         inspect = self.args.get('sanity', default)
 
         for slot in self.targets:
@@ -122,26 +126,34 @@ class Lynch(ActionBase):
         state.votecount(True)
         return Kill.resolve(self, state)
 
-class Suicide(Action, NoTrigger, NoImmune):
+class Suicide(Action):
     name = "suicide"
     priority = 70
+
+    noimmune = True
+    notrigger = True
 
     def resolve(self, state):
         self.targets = [self.actor]
         self.args['how'] = 'comitted suicide'
         return Kill.resolve(self, state)
 
-class PoisonKill(Action, NoTrigger):
+# resolve earlier than hide
+class PoisonKill(Action):
     name = "poisonkill"
     priority = 10
+
+    notrigger = True
 
     def resolve(self, state):
         self.args['how'] = 'was poisoned'
         return Kill.resolve(self, state)
 
-class Poison(Action, NoTrigger):
+class Poison(Action):
     name = "poison"
     priority = 70
+
+    notrigger = True
 
     def resolve(self, state):
         state.resolved(self)
@@ -258,9 +270,10 @@ class Block(Action):
 
         return newqueue
 
-class Eavesdrop(Action, Untrackable):
+class Eavesdrop(Action):
     name = "eavesdrop"
     priority = 95
+    untrackable = True
 
     def resolve(self, state):
         state.resolved(self)
@@ -352,9 +365,8 @@ class Immune(Action):
         for act in state.queue:
             for target in self.targets:
                 if target in act.targets:
-
                     for immuneact in immune:
-                        if isinstance(act, NoImmune):
+                        if act.noimmune:
                             newqueue.enqueue(act)
                         elif operator(isinstance(act, immuneact)):
                             state.resqueue.enqueue(act)
@@ -373,9 +385,12 @@ class Immune(Action):
             msg.append(", ".join([x.name for x in self.args['immune']]))
         return " ".join(msg)
 
-class Reflex(Action, NoImmune, NoTrigger):
+class Reflex(Action):
     name = "reflex"
     priority = 8
+
+    notrigger = True
+    noimmune = True
 
     def resolve(self, state):
         triggers = self.args.get('triggers', [Action])
@@ -385,7 +400,7 @@ class Reflex(Action, NoImmune, NoTrigger):
             for act in state.queue + state.resqueue:
                 if act.actor != self.actor and target in act.targets:
                     for trigger in triggers:
-                        if not isinstance(act, NoTrigger) and isinstance(act, trigger):
+                        if not act.notrigger and isinstance(act, trigger):
                             reflexact = self.args.get('action', act)
                             newact = copy.deepcopy(reflexact)
                             newact.actor = target
@@ -507,13 +522,16 @@ class Track(Action):
 
         for target in self.targets:
             bussed = state.bussedslot(target)
-            acted = False
             targets = []
             for act in state.queue + state.resqueue:
-                if not isinstance(act, Untrackable) and act.actor == bussed:
+                if not act.untrackable and act.actor == bussed:
                     targets.extend(act.targets)
 
-            msg = "%s targeted %s" % (state.playerbyslot(bussed).name, ", ".join([state.playerbyslot(x).name for x in state.fix(targets)]) )
+            if targets:
+                res = ", ".join([state.playerbyslot(x).name for x in state.fix(targets)]) 
+            else:
+                res = "nobody"
+            msg = "%s targeted %s" % (state.playerbyslot(bussed).name, res)
             state.queue.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
 
         return state.queue
@@ -529,7 +547,7 @@ class Watch(Track):
             bussed = state.bussedslot(target)
             acted = False
             for act in state.queue + state.resqueue:
-                if not isinstance(act, Untrackable) and act.actor == bussed:
+                if not act.untrackable and act.actor == bussed:
                     acted = True
                     break
 
@@ -554,10 +572,16 @@ class Patrol(Track):
             actors = []
 
             for act in state.queue + state.resqueue:
-                if not isinstance(act, Patrol) and not isinstance(act, Untrackable) and bussed in state.fix(act.targets):
+                if not isinstance(act, Patrol) and not act.untrackable and bussed in state.fix(act.targets):
                     actors.append(act.actor)
 
-            msg = "%s was targeted by %s" % (fakename, ", ".join([state.playerbyslot(x).name for x in actors]) )
+            if actors:
+                res = ", ".join([state.playerbyslot(x).name for x in actors])
+            else:
+                res = "nobody"
+
+            msg = "%s was targeted by %s" % (fakename, res)
+
             state.queue.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
 
         return state.queue
