@@ -88,6 +88,7 @@ class Game:
         return [self.bussedslot(x) for x in targets]
 
     def nextphase(self, newphase=None):
+        print("nextphase",newphase)
         if newphase:
             self.newphase = newphase
         else:
@@ -157,21 +158,6 @@ class Game:
         self.resetuses()
         self.resetvotes()
         self.useautoabilities()
-
-    def resetphase(self):
-        self.resetuses()
-        self.resetout()
-        self.resetvotes()
-
-        self.queue = Mqueue()
-        self.resqueue = Mqueue()
-        self.autoqueue = Mqueue()
-
-        for name, slot in self.slot.items():
-            player = self.playerbyslot(slot)
-            player.living = True
-
-        self.bus = {}
 
     def reset(self):
         channel = self.channel
@@ -375,8 +361,7 @@ class Game:
                             self.message(name, player.fullrolepm(self))
                 else:
                     self.message(None, "Failed to assign roles, canceled game")
-                    self.nextphase = mafl.phase.Idle
-#                    self.reset()
+                    self.nextphase(mafl.phase.Done)
 
             self.undelay()
 
@@ -385,7 +370,7 @@ class Game:
             self.resolve()
 
             self.phase = self.newphase
-            if self.phase != mafl.phase.Done:
+            if self.phase.started:
                 self.phasemsg()
                 self.livingmsg()
 
