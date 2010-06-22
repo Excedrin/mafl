@@ -1,12 +1,13 @@
 from actor import Actor
 
 class Player(Actor):
-    def __init__(self, name):
+    def __init__(self, name, virtual=False):
         Actor.__init__(self)
 
         self.name = name
         self.faction = None
         self.living = True
+        self.virtual = virtual
 
     def __str__(self):
         return "Player %s" %self.name
@@ -36,7 +37,10 @@ class Player(Actor):
         return "%s (%s) %s %s" %(self.role, self.faction.name, self.faction.rolepm(state), farole + self.rolepm())
 
     def flip(self):
-        return "%s %s" % (self.faction.name, self.truename)
+        if not self.virtual:
+            return "%s %s" % (self.faction.name, self.truename)
+        else:
+            return "%s" %(self.name)
 
     def unused(self, state):
         if self.living:

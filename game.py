@@ -60,13 +60,13 @@ class Game:
 
     def bussedslot(self, slot):
         if slot in self.bus:
-            return rng.choice(self.bus[slot])
+            return self.rng.choice(self.bus[slot])
         else:
             return slot
 
     def playerbyslotbus(self, slot):
         if slot in self.bus:
-            busedslot = rng.choice(self.bus[slot])
+            busedslot = self.rng.choice(self.bus[slot])
             return self.playerbyslot(busedslot)
         else:
             return self.playerbyslot(slot)
@@ -93,18 +93,19 @@ class Game:
         else:
             self.newphase = self.phase.nextphase
 
-    def newplayer(self, name):
+    def newplayer(self, name, virtual=False):
         slot = len(self.players)
         self.slot[name] = slot
         self.name[slot] = name
-        self.players.append(mafl.Player(name))
+        self.players.append(mafl.Player(name, virtual))
 
     def join(self, channel, name):
-        if self.phase == mafl.phase.Idle:
-            self.newplayer(name)
-            self.start(channel)
-        elif self.phase == mafl.phase.Signups:
-            self.newplayer(name)
+        if name.lower() != "nolynch":
+            if self.phase == mafl.phase.Idle:
+                self.start(channel)
+                self.newplayer(name)
+            elif self.phase == mafl.phase.Signups:
+                self.newplayer(name)
 
     def enqueue(self, action):
         print("enqueue",action)
@@ -144,8 +145,7 @@ class Game:
         self.votes = {}
 
     def resetuses(self):
-        for name, slot in self.slot.items():
-            player = self.playerbyslot(slot)
+        for player in self.realplayers():
             for abi in player.allabilities():
                 abi.reset()
 
@@ -188,15 +188,18 @@ class Game:
         living = []
         for name, slot in self.slot.items():
             player = self.playerbyslot(slot)
-            if player.living:
+            if player.living and not player.virtual:
                 living.append(slot)
         return living
+
+    def realplayers(self):
+        return list(filter(lambda x: not x.virtual, self.players))
 
     def living(self):
         living = []
         for name, slot in self.slot.items():
             player = self.playerbyslot(slot)
-            if player.living:
+            if player.living and not player.virtual:
                 living.append(player)
         return living
 
@@ -204,7 +207,7 @@ class Game:
         dead = []
         for name, slot in self.slot.items():
             player = self.playerbyslot(slot)
-            if not player.living:
+            if not player.living and not player.virtual:
                 dead.append(player)
         return dead
 
@@ -213,24 +216,25 @@ class Game:
         losers = []
         for name, slot in self.slot.items():
             player = self.playerbyslot(slot)
-            if player.faction.win(self, player):
-                winners.append(slot)
-            else:
-                losers.append(slot)
+            if not player.virtual:
+                if player.faction.win(self, player):
+                    winners.append(slot)
+                else:
+                    losers.append(slot)
         if not self.living():
             return ((), (), list(self.slot.keys()))
         if winners:
             return (winners, losers, ())
         return ((), (), ())
 
-
     def start(self, channel):
         if self.phase == mafl.phase.Idle:
             print("start")
+
+            self.newplayer('nolynch', True)
+
             self.channel = channel
-
             self.nextphase()
-
             self.timers.settimer('start', 307)
 
     def wait(self):
@@ -278,6 +282,11 @@ class Game:
     def phasemsg(self, who=None):
         self.message(who, self.phase.name)
 
+    def deadmsg(self, who=None):
+        dead = self.dead()
+        msg = "%d dead players: %s"% (len(dead), ", ".join([x.name for x in dead]))
+        self.message(who, msg)
+
     def livingmsg(self, who=None):
         living = self.living()
         msg = "%d living players: %s"% (len(living), ", ".join([x.name for x in living]))
@@ -285,12 +294,12 @@ class Game:
 
     def fullrolepm(self, name):
         player = self.playerbyname(name)
-        if player:
+        if player and not player.virtual:
             self.message(name, player.fullrolepm(self))
 
     def done(self, name):
         player = self.playerbyname(name)
-        if player:
+        if player and not player.virtual:
             player.done(self)
             self.message(name, 'OK')
 
@@ -356,13 +365,14 @@ class Game:
                 self.timers = timers.Timers()
 
             if self.phase == mafl.phase.Signups:
-                self.setup = mafl.setup.Setup(self.rng, self.players)
+                self.setup = mafl.setup.Setup(self.rng, self.realplayers())
                 if self.setup.setroles():
                     print("sending roles")
                     # send role pms
                     for name, slot in self.slot.items():
                         player = self.playerbyslot(slot)
-                        self.message(name, player.fullrolepm(self))
+                        if not player.virtual:
+                            self.message(name, player.fullrolepm(self))
                 else:
                     self.message(None, "Failed to assign roles, canceled game")
                     self.nextphase = mafl.phase.Idle
@@ -430,6 +440,8 @@ class Game:
         slot = self.slotbyname(p1)
         if slot != None:
             player = self.playerbyslot(slot)
+            if player.virtual:
+                return
             player.name = p2
             self.slot[p2] = slot
             del self.slot[p1]
@@ -464,7 +476,8 @@ class Game:
     def showsetup(self, who):
         for name, slot in self.slot.items():
             player = self.playerbyslot(slot)
-            self.message(who, name + ": " + player.fullrolepm(self))
+            if not player.virtual:
+                self.message(who, name + ": " + player.fullrolepm(self))
 
     def fuzzy(self, tryname):
         best = 0
@@ -540,7 +553,7 @@ class Game:
     def gotest(self, to, who, args):
         if len(args) >= 1 and int(args[0]) < 26 and self.phase == mafl.phase.Idle:
             self.verbose = True
-            self.channel = to
+            self.start(to)
             n = int(args[0])
             print("runtest for ",n)
             for name in [chr(ord('a') + x) for x in range(n)]:

@@ -20,7 +20,7 @@ class Townie(RoleBase):
     basic = True
     factions = [Town]
     name = "Townie"
-    abilities = [Ability(Vote, Day, free=True, public=True, optargs=True, restrict=[Ability.Living])]
+    abilities = [Ability(Vote, Day, free=True, public=True, optargs=True, restrict=[Ability.LivingOrNL])]
     def power(x):
         return 0
 
@@ -81,6 +81,13 @@ class Cop(RoleBase):
     factions = [Town, Survivor]
     abilities = Townie.abilities + [Ability(Inspect)]
     name = "Cop"
+    def power(x):
+        return 0.5
+
+class RoleCop(RoleBase):
+    factions = [Town, Mafia]
+    abilities = Townie.abilities + [Ability(Inspect, args={'sanity':Rolecop()})]
+    name = "Role Cop"
     def power(x):
         return 0.5
 

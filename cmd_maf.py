@@ -106,6 +106,8 @@ def run(bot, command, to, who, args):
 # public informational commands
     elif public and command == "living":
         state.livingmsg()
+    elif public and command == "dead":
+        state.deadmsg()
     elif public and command == "votes":
         state.votecount()
     elif public and command == "phase":

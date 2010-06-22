@@ -54,6 +54,11 @@ class Ability:
         desc = "living"
         def test(actor, x, state):
             return state.playerbyslot(x).living
+    class LivingOrNL:
+        desc = "living"
+        def test(actor, x, state):
+            p = state.playerbyslot(x)
+            return p.living or p.name == 'nolynch'
     class NonSelf:
         desc = "other than yourself"
         def test(actor, x, state):

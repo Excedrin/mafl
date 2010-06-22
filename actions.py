@@ -133,20 +133,20 @@ class Suicide(Action, NoTrigger, NoImmune):
 
 class PoisonKill(Action, NoTrigger):
     name = "poisonkill"
-    priority = 70
+    priority = 10
 
     def resolve(self, state):
         self.args['how'] = 'was poisoned'
         return Kill.resolve(self, state)
 
-class Poison(Action):
+class Poison(Action, NoTrigger):
     name = "poison"
     priority = 70
 
     def resolve(self, state):
         state.resolved(self)
 
-        delayedact = PoisonKill(self.actor, self.targets)
+        delayedact = PoisonKill(0, self.targets)
         phases = self.args.get('phases', 2)
         state.delay(phases, delayedact)
 

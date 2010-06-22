@@ -14,6 +14,8 @@ class Setup:
 
         self.rng.shuffle(self.players)
         n = len(self.players)
+        print("setup", self.players)
+
         if n < 3:
             return False
 
