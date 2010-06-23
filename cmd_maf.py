@@ -27,6 +27,13 @@ def tick(bot):
         rungame(bot, True, None, None, state)
     bot.store('maf', state)
 
+def makefake(self, who, args):
+    fakecmd = args[1]
+    if fakecmd[0] == '%':
+        fakecmd = fakecmd[1:]
+    if fakecmd == 'join':
+        self.fake[args[0]] = who
+
 def run(bot, command, to, who, args):
     if not command:
         return
@@ -71,14 +78,12 @@ def run(bot, command, to, who, args):
     elif public and command == "force":
         if len(args) >= 2:
             run(bot, args[1], to, args[0], args[2:])
-        if args[1] == 'join' or args[1][1:] == 'join':
-            state.fake[args[0]] = who
+        makefake(state, who, args)
 
     elif public and command == "forcep":
         if len(args) >= 2:
             run(bot, args[1], "bot", args[0], args[2:])
-        if args[1] == 'join' or args[1][1:] == 'join':
-            state.fake[args[0]] = who
+        makefake(state, who, args)
 
     elif public and command == "forcenextphase":
         state.nextphase()

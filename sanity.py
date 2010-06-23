@@ -3,6 +3,7 @@ import faction
 
 class Sanity:
     name = ""
+    useful = True
     def __init__(self, factions=[faction.Town, faction.Mafia]):
         self.factions = factions
     def result(self, p):
@@ -36,6 +37,7 @@ class Insane(Sanity):
 
 class Paranoid(Sanity):
     name = "Paranoid"
+    useful = False
     def __init__(self, factions=[faction.Mafia]):
         self.factions = factions
     def result(self, p):
@@ -44,6 +46,7 @@ class Paranoid(Sanity):
 
 class Naive(Paranoid):
     name = "Naive"
+    useful = False
     def __init__(self, factions=[faction.Town]):
         self.factions = factions
     def result(self, p):
@@ -51,11 +54,13 @@ class Naive(Paranoid):
 
 class Stoned(Sanity):
     name = "Stoned"
+    useful = False
     def result(self, p):
         return "isn't " + " or ".join([f.name for f in self.factions])
 
 class Random(Stoned, Naive):
     name = "Random"
+    useful = False
     def __init__(self, factions=[faction.Town, faction.Mafia]):
         self.factions = factions
     def result(self, p):
@@ -66,6 +71,7 @@ class Random(Stoned, Naive):
 
 class Rolecop(Sanity):
     name = "Role"
+    useful = True
     def result(self, p):
         return p.role
 

@@ -196,6 +196,21 @@ class Coward(RoleBase):
     def power(x):
         return 0.2
 
+class Miller(RoleBase):
+    factions = [Town]
+    name = "Townie"
+    truename = "Miller"
+    abilities = Townie.abilities + [Ability(Alter, Any, auto=True, resolvers=[Ability.Self()] )]
+    def power(x):
+        return -0.2
+
+class Godfather(RoleBase):
+    factions = [Mafia]
+    name = "Godfather"
+    abilities = Townie.abilities + [Ability(Alter, Any, auto=True, resolvers=[Ability.Self()] ), Ability(Immune, Any, auto=True, resolvers=[Ability.Self()], args={'immune':[Kill]})]
+    def power(x):
+        return 0.6
+
 class Ascetic(RoleBase):
     factions = [Town, Survivor, Mafia, Cult]
     name = "Ascetic"

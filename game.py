@@ -19,8 +19,8 @@ class Game:
 
         self.bus = {}
 
-        self.slot = {}
-        self.name = {}
+        self.slot = {} # name to slot
+        self.name = {} # slot to name
 
         self.players = []
 
@@ -46,33 +46,22 @@ class Game:
             self.out.append((who, message))
 ####
     def slotbyname(self, name):
-        if name in self.slot:
-            return self.slot[name]
-        else:
-#            print("no slot",name)
-            return None
+        return self.slot.get(name.lower(), None)
 
     def slotbyplayer(self, player):
-        return self.slotbyname(player.name)
+        return self.slotbyname(player.name.lower())
 
     def playerbyslot(self, slot):
         return self.players[slot]
 
     def bussedslot(self, slot):
-        if slot in self.bus:
-            return self.rng.choice(self.bus[slot])
-        else:
-            return slot
+        return self.rng.choice(self.bus.get(slot, [slot]))
 
     def playerbyslotbus(self, slot):
-        if slot in self.bus:
-            busedslot = self.rng.choice(self.bus[slot])
-            return self.playerbyslot(busedslot)
-        else:
-            return self.playerbyslot(slot)
+        return self.playerbyslot(self.bussedslot(slot))
 
     def playerbyname(self, name):
-        slot = self.slotbyname(name)
+        slot = self.slotbyname(name.lower())
         if slot is None:
             print("no player",name)
             return None
@@ -95,13 +84,14 @@ class Game:
             self.newphase = self.phase.nextphase
 
     def newplayer(self, name, virtual=False):
-        slot = len(self.players)
-        self.slot[name] = slot
-        self.name[slot] = name
-        self.players.append(mafl.Player(name, virtual))
+        if not self.playerbyname(name):
+            slot = len(self.players)
+            self.slot[name.lower()] = slot
+            self.name[slot] = name
+            self.players.append(mafl.Player(name, virtual))
 
     def join(self, channel, name):
-        if name.lower() != "nolynch":
+        if name != "nolynch" and self.playerbyname(name) is None:
             if self.phase == mafl.phase.Idle:
                 self.start(channel)
                 self.newplayer(name)
@@ -115,6 +105,9 @@ class Game:
     def resolved(self, action):
         self.resqueue.enqueue(action)
 
+    def delay(self, phases, action):
+        self.delayqueue.enqueue((phases - 1, action))
+        
     def resolve(self):
         if self.queue:
             if self.verbose:
@@ -289,9 +282,6 @@ class Game:
             player.done(self)
             self.message(name, 'OK')
 
-    def delay(self, phases, action):
-        self.delayqueue.enqueue((phases - 1, action))
-        
     def undelay(self):
         newqueue = mafl.Mqueue()
         while self.delayqueue:
@@ -323,6 +313,8 @@ class Game:
             # if nobody has an unused ability, end the phase
             # if no player has an ability (night or day) then
             # it'll instantly alternate between day and night forever
+
+            # check for unused actions
             unused = False
             for name, slot in self.slot.items():
                 player = self.playerbyslot(slot)
@@ -331,6 +323,7 @@ class Game:
             if not unused:
                 # anti-meta timer (range is maybe too small)
                 self.timers.setfirst('randomize', self.rng.randint(3,13))
+                # tick will cause nextphase
 
             if self.phase.instant:
                 self.resolve()
@@ -343,6 +336,7 @@ class Game:
                     self.message(None, "game over, winners: %s"% ", ".join(self.names(win)))
                     self.message(None, "losers: %s"% ", ".join(self.names(lose)))
                 self.nextphase(mafl.phase.Done)
+                self.showsetuppost(None)
 
         # phase changed!
         if self.phase != self.newphase:
@@ -422,21 +416,28 @@ class Game:
                 self.message(None, wagon)
 
     def replace(self, p1, p2):
+        if p1 == p2:
+            return
+
         slot = self.slotbyname(p1)
-        if slot != None:
+        slot2 = self.slotbyname(p2)
+        if slot != None and slot2 == None:
+
             player = self.playerbyslot(slot)
             if player.virtual:
                 return
             player.name = p2
-            self.slot[p2] = slot
-            del self.slot[p1]
+            self.slot[p2.lower()] = slot
+            del self.slot[p1.lower()]
             self.name[slot] = p2
 
             if p1 in self.fake:
                 self.fake[p2] = self.fake[p1]
             self.message(None, "replaced %s with %s"%(p1,p2))
+        elif slot2:
+            self.message(None, "player %s is already playing"%p2)
         else:
-            self.message(None, "didn't find player %s"%p1)
+            self.message(None, "player %s doesn't exist"%p1)
 
     def setrole(self, p1, rolename, add=False):
         newrole = mafl.role.roles.get(rolename, None)
@@ -463,6 +464,18 @@ class Game:
             player = self.playerbyslot(slot)
             if not player.virtual:
                 self.message(who, name + ": " + player.fullrolepm(self))
+
+    def showsetuppost(self, who):
+        byfac = {}
+        for p in self.realplayers():
+            if str(p.faction) in byfac:
+                byfac[str(p.faction)].append(p.name+" was "+p.truename)
+            else:
+                byfac[str(p.faction)] = [p.name+" was "+p.truename]
+        msg = []
+        for k,v in byfac.items():
+            msg.append("%s: %s" %(k, ", ".join(v)))
+        self.message(who, "setup: " + "; ".join(msg))
 
     def fuzzy(self, tryname):
         best = 0

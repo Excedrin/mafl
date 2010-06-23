@@ -21,6 +21,9 @@ class ActionBase:
 
         if 'untrackable' in args:
             self.untrackable = args['untrackable']
+        for k,v in args.items():
+#            print("action set from args",k,v)
+            self.__dict__[k] = v
 
     def __lt__(self, other):
         return self.__class__.priority < other.__class__.priority
@@ -74,27 +77,43 @@ class Vote(Action):
 
         return state.queue
 
-class Inspect(Action):
-    name = "inspect"
-    priority = 20
+class Alter(Action):
+    name = "alter"
+    priority = 19
 
     def resolve(self, state):
         state.resolved(self)
 
-        default = sanity.Sane([faction.Mafia, faction.Town])
-        inspect = self.args.get('sanity', default)
+        for target in self.targets:
+            for act in state.queue:
+                if isinstance(act, Inspect) and target in act.targets:
+                    if isinstance(act.inspect, sanity.Sane):
+                        act.inspect = sanity.Insane(act.inspect.factions)
+                    elif isinstance(act.inspect, sanity.Insane):
+                        act.inspect = sanity.Sane(act.inspect.factions)
+
+        return state.queue
+
+class Inspect(Action):
+    name = "inspect"
+    priority = 20
+    inspect = sanity.Sane([faction.Mafia, faction.Town])
+
+    def resolve(self, state):
+        state.resolved(self)
 
         for slot in self.targets:
             target = state.playerbyslotbus(slot)
 
-            msg = target.name+" "+inspect.result(target)
-            state.queue.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
+            msg = target.name+" "+self.inspect.result(target)
+            state.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
 
         return state.queue
 
 class Kill(Action):
     name = "kill"
     priority = 70
+    how = "was killed"
 
     def resolve(self, state):
         state.resolved(self)
@@ -104,8 +123,7 @@ class Kill(Action):
             if player.living:
                 player.living = False
                 print("kill resolved (%s killed by %s)" % (player.name, self.actor))
-                how = self.args.get("how", "was killed")
-                state.message(None, "%s (%s) %s"%(player.name, player.flip(), how))
+                state.message(None, "%s (%s) %s"%(player.name, player.flip(), self.how))
                 state.resetvotes()
 
         return state.queue
@@ -120,38 +138,39 @@ class SuperKill(Action):
 class Lynch(ActionBase):
     name = "lynch"
     priority = 70
+    how = "was killed"
 
     def resolve(self, state):
-        self.args['how'] = 'was lynched'
         state.votecount(True)
         return Kill.resolve(self, state)
 
 class Suicide(Action):
     name = "suicide"
     priority = 70
+    how = "comitted suicide"
 
     noimmune = True
     notrigger = True
 
     def resolve(self, state):
         self.targets = [self.actor]
-        self.args['how'] = 'comitted suicide'
         return Kill.resolve(self, state)
 
 # resolve earlier than hide
 class PoisonKill(Action):
     name = "poisonkill"
     priority = 10
+    how = "was poisoned"
 
     notrigger = True
 
     def resolve(self, state):
-        self.args['how'] = 'was poisoned'
         return Kill.resolve(self, state)
 
 class Poison(Action):
     name = "poison"
     priority = 70
+    phases = 2
 
     notrigger = True
 
@@ -159,8 +178,7 @@ class Poison(Action):
         state.resolved(self)
 
         delayedact = PoisonKill(0, self.targets)
-        phases = self.args.get('phases', 2)
-        state.delay(phases, delayedact)
+        state.delay(self.phases, delayedact)
 
         return state.queue
 
@@ -237,6 +255,8 @@ class Delay(Action):
     name = "delay"
     priority = 13
 
+    phases = 1
+
     def resolve(self, state):
         state.resolved(self)
 
@@ -248,8 +268,7 @@ class Delay(Action):
                 else:
                     delayedact = copy.deepcopy(act)
                     delayedact.args['delayed'] = True
-                    phases = self.args.get('phases', 1)
-                    state.delay(phases, delayedact)
+                    state.delay(self.phases, delayedact)
             else:
                 newqueue.enqueue(act)
 
@@ -297,7 +316,7 @@ class Friend(Action):
 
         msg = "%s is %s" % (actor.name, actor.faction.name)
         for target in state.fix(self.targets):
-            state.queue.enqueue(Message(self.actor, [target], {'msg':msg}))
+            state.enqueue(Message(self.actor, [target], {'msg':msg}))
 
         return state.queue
 
@@ -312,10 +331,10 @@ class Guard(Action):
     name = "guard"
     priority = 40
 
+    guard = Guard.Both
+
     def resolve(self, state):
         state.resolved(self)
-
-        guard = self.args.get('guard', Guard.Both)
 
         killfound = False
         for target in self.targets:
@@ -324,19 +343,17 @@ class Guard(Action):
                 if killfound or (not (isinstance(act, Kill) and target in act.targets)):
                     newqueue.enqueue(act)
                 else:
-                    if guard is Both or guard is Other:
+                    if self.guard is Both or self.guard is Other:
                         # bodyguard kills the killer (ignore bus)
                         newqueue.enqueue(Kill(self.actor, [act.actor]))
-                    if guard is Both or guard is Self:
+                    if self.guard is Both or self.guard is Self:
                         # bodyguard dies also / instead of target
                         newqueue.enqueue(Kill(act.actor, [self.actor]))
                     killfound = True
         return newqueue
 
     def __str__(self):
-        guard = self.args.get('guard', Guard.Both)
-        guard.name
-        msg = [self.getname(), guard.name]
+        msg = [self.getname(), self.guard.name]
         return " ".join(msg)
 
 # uses two keys in args:
@@ -351,11 +368,11 @@ class Guard(Action):
 class Immune(Action):
     name = "immune"
     priority = 9
+    immune = []
 
     def resolve(self, state):
         state.resolved(self)
 
-        immune = self.args.get('immune', [])
         if 'not' in self.args:
             operator = lambda x: not x
         else:
@@ -365,7 +382,7 @@ class Immune(Action):
         for act in state.queue:
             for target in self.targets:
                 if target in act.targets:
-                    for immuneact in immune:
+                    for immuneact in self.immune:
                         if act.noimmune:
                             newqueue.enqueue(act)
                         elif operator(isinstance(act, immuneact)):
@@ -381,27 +398,30 @@ class Immune(Action):
         msg = [self.getname()]
         if 'not' in self.args:
             msg.insert(0, 'not')
-        if 'immune' in self.args:
-            msg.append(", ".join([x.name for x in self.args['immune']]))
+        msg.append(", ".join([x.name for x in self.immune]))
         return " ".join(msg)
 
 class Reflex(Action):
     name = "reflex"
     priority = 8
+    triggers = [Action]
+    action = None
 
     notrigger = True
     noimmune = True
 
     def resolve(self, state):
-        triggers = self.args.get('triggers', [Action])
 
         newacts = []
         for target in self.targets:
             for act in state.queue + state.resqueue:
                 if act.actor != self.actor and target in act.targets:
-                    for trigger in triggers:
+                    for trigger in self.triggers:
                         if not act.notrigger and isinstance(act, trigger):
-                            reflexact = self.args.get('action', act)
+                            if not self.action:
+                                reflexact = act
+                            else:
+                                reflexact = self.action
                             newact = copy.deepcopy(reflexact)
                             newact.actor = target
                             newact.targets = [act.actor]
@@ -409,7 +429,7 @@ class Reflex(Action):
 
         resolved = False
         for newact in newacts:
-            state.queue.enqueue(newact)
+            state.enqueue(newact)
             resolved = True
 
         if resolved:
@@ -418,7 +438,7 @@ class Reflex(Action):
             newreflex = copy.deepcopy(self)
             newreflex.__class__ = Reflex2
             print("enqueue newreflex",newreflex)
-            state.queue.enqueue(newreflex)
+            state.enqueue(newreflex)
 
         return state.queue
 
@@ -532,7 +552,7 @@ class Track(Action):
             else:
                 res = "nobody"
             msg = "%s targeted %s" % (state.playerbyslot(bussed).name, res)
-            state.queue.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
+            state.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
 
         return state.queue
 
@@ -555,7 +575,7 @@ class Watch(Track):
 
             msg = "%s %s" % (state.playerbyslot(bussed).name, result)
 
-            state.queue.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
+            state.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
 
         return state.queue
 
@@ -582,6 +602,6 @@ class Patrol(Track):
 
             msg = "%s was targeted by %s" % (fakename, res)
 
-            state.queue.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
+            state.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
 
         return state.queue

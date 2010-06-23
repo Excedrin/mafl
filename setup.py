@@ -77,10 +77,10 @@ class Setup:
             badroles = list(filter(lambda x: x.power(n) <= 0, mafl.role.faction[mafl.faction.Town]))
             basicroles = list(filter(lambda x: x.basic, mafl.role.faction[mafl.faction.Town]))
             normalroles = list(filter(lambda x: x.power(n) > 0 and x.power(n) < maxpower, mafl.role.faction[mafl.faction.Town]))
-            if townpower > scumpower + 0.5:
+            if townpower > scumpower + 0.6:
                 r = self.rng.choice(badroles)
                 print("too much town power, picking bad role",mafl.role.getname(r))
-            elif townpower > len(townroles) * 0.2 or townpower > scumpower:
+            elif townpower > len(townroles) * 0.3 or townpower > scumpower:
                 r = self.rng.choice(basicroles)
                 print("too much town power, picking basic role",mafl.role.getname(r))
             else:
