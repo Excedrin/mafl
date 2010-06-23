@@ -331,7 +331,7 @@ class Guard(Action):
     name = "guard"
     priority = 40
 
-    guard = Guard.Both
+    guard = Both
 
     def resolve(self, state):
         state.resolved(self)
