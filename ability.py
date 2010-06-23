@@ -1,4 +1,5 @@
 import phase
+import faction
 
 class Ability:
 # fixed targets
@@ -63,6 +64,25 @@ class Ability:
         desc = "other than yourself"
         def test(actor, x, state):
             return actor != x
+    # these two restrictions require the player acting is on an informed minority team
+    class NonTeam:
+        desc = "unaligned"
+        def test(actor, x, state):
+            p1 = state.playerbyslot(actor)
+            p2 = state.playerbyslot(x)
+            if isinstance(p1.faction, faction.Mafia) or isinstance(p1.faction, faction.Cult):
+                return p1.faction != p2.faction
+            else:
+                return True
+    class SameTeam:
+        desc = "aligned"
+        def test(actor, x, state):
+            p1 = state.playerbyslot(actor)
+            p2 = state.playerbyslot(x)
+            if isinstance(p1.faction, faction.Mafia) or isinstance(p1.faction, faction.Cult):
+                return p1.faction == p2.faction
+            else:
+                return True
 
     def __init__(self, action, phase=phase.Night, uses=None,
                     free=False, auto=False, public=False, ghost=False,

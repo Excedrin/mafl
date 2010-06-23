@@ -196,6 +196,27 @@ class Coward(RoleBase):
     def power(x):
         return 0.2
 
+class Framer(RoleBase):
+    factions = [Mafia]
+    name = "Framer"
+    abilities = Townie.abilities + [Ability(Alter, name="frame", restrict=[Ability.NonTeam, Ability.Living, Ability.NonSelf])]
+    def power(x):
+        return 0.3
+
+class Lawyer(RoleBase):
+    factions = [Mafia]
+    name = "Lawyer"
+    abilities = Townie.abilities + [Ability(Alter, name="clear", restrict=[Ability.SameTeam, Ability.Living, Ability.NonSelf])]
+    def power(x):
+        return 0.35
+
+class Agent(RoleBase):
+    factions = [Mafia]
+    name = "Agent"
+    abilities = Townie.abilities + [Ability(Alter)]
+    def power(x):
+        return 0.4
+
 class Miller(RoleBase):
     factions = [Town]
     name = "Townie"
@@ -207,21 +228,28 @@ class Miller(RoleBase):
 class Godfather(RoleBase):
     factions = [Mafia]
     name = "Godfather"
-    abilities = Townie.abilities + [Ability(Alter, Any, auto=True, resolvers=[Ability.Self()] ), Ability(Immune, Any, auto=True, resolvers=[Ability.Self()], args={'immune':[Kill]})]
+    abilities = Townie.abilities + \
+        [Ability(Alter, Any, auto=True, resolvers=[Ability.Self()]), 
+         Ability(Immune, Any, auto=True, resolvers=[Ability.Self()],
+                    args={'immune':[Kill]})]
     def power(x):
         return 0.6
 
 class Ascetic(RoleBase):
     factions = [Town, Survivor, Mafia, Cult]
     name = "Ascetic"
-    abilities = Townie.abilities + [Ability(Immune, Any, auto=True, resolvers=[Ability.Self()], args={'not':0,'immune':[Kill]})]
+    abilities = Townie.abilities + \
+        [Ability(Immune, Any, auto=True, resolvers=[Ability.Self()],
+                    args={'not':0,'immune':[Kill]})]
     def power(x):
         return 0.2
 
 class Bulletproof(RoleBase):
     factions = [Town, Mafia]
     name = "Bulletproof"
-    abilities = Townie.abilities + [Ability(Immune, Any, auto=True, resolvers=[Ability.Self()], args={'immune':[Kill]})]
+    abilities = Townie.abilities + \
+        [Ability(Immune, Any, auto=True, resolvers=[Ability.Self()],
+                    args={'immune':[Kill]})]
     def power(x):
         return 0.3
 
@@ -321,14 +349,20 @@ class Skulker(RoleBase):
 class SuperSaint(RoleBase):
     factions = [Town, Survivor]
     name = "Super-Saint"
-    abilities = Townie.abilities + [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()], args={'action':Kill(0, [], args={'how':'was killed by an angry mob'}), 'triggers':[Lynch]} )]
+    abilities = Townie.abilities + \
+        [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()],
+            args={'action':Kill(0, [], args={'how':'was killed by an angry mob'}),
+                  'triggers':[Lynch]} )]
     def power(x):
         return 0.3
 
 class Bomb(RoleBase):
     factions = [Town, Survivor]
     name = "Bomb"
-    abilities = Townie.abilities + [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()], args={'action':Kill(0, [], args={'how':'was killed by an explosion'}), 'triggers':[Lynch, Kill, SuperKill]} )]
+    abilities = Townie.abilities + \
+        [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()],
+            args={'action':Kill(0, [], args={'how':'was killed by an explosion'}),
+                  'triggers':[Lynch, Kill, SuperKill]} )]
     def power(x):
         return 0.6
 
