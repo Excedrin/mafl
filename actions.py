@@ -55,10 +55,24 @@ class Message(Action):
 
         return state.queue
 
-# priority here probably doesn't matter since it's going to be a day ability usually
+class PubMessage(Action):
+    name = "pubmessage"
+    priority = 100
+
+    untrackable = True
+
+    def resolve(self, state):
+        if 'msg' in self.args:
+            msg = self.args['msg']
+            state.message(None, msg)
+            print("public message from %s: %s" % (self.actor, msg))
+
+        return state.queue
+
+# priority here matters, it has to resolve before auto actions
 class Vote(Action):
     name = "vote"
-    priority = 99
+    priority = 5
 
     untrackable = True
     noimmune = True
@@ -139,7 +153,7 @@ class SuperKill(Action):
 class Lynch(ActionBase):
     name = "lynch"
     priority = 70
-    how = "was killed"
+    how = "was lynched"
 
     def resolve(self, state):
         state.votecount(True)
@@ -186,17 +200,40 @@ class Poison(Action):
 
 class Flip(Action):
     name = "flip"
-    priority = 73
+    priority = 74
 
     def resolve(self, state):
         for slot in self.targets:
             player = state.playerbyslot(slot)
             if not player.living:
-                state.message(None, "%s was a %s"%(player.name, player.flip()))
+                msg = "%s was a %s"%(player.name, player.flip())
+                state.enqueue(PubMessage(self.actor, [], {'msg':msg}))
                 self.used = True
 
         state.resolved(self)
         return state.queue
+
+class FakeFlip(Action):
+    name = "fakeflip"
+    priority = 73
+
+    def resolve(self, state):
+        newqueue = Mqueue()
+        for act in state.queue:
+            for slot in self.targets:
+                if isinstance(act, Flip) and slot in act.targets:
+                    player = state.playerbyslot(slot)
+                    if not player.living:
+                        faction = self.args.get('faction', player.faction)
+                        role = self.args.get('role', player.truename)
+                        msg = "%s was a %s %s"%(player.name, faction.name, role)
+                        newqueue.enqueue(PubMessage(self.actor, [], {'msg':msg}))
+                        self.used = True
+                else:
+                    newqueue.enqueue(act)
+
+        state.resolved(self)
+        return newqueue
 
 class Resurrect(Action):
     name = "resurrect"

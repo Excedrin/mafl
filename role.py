@@ -233,6 +233,16 @@ class Miller(RoleBase):
     def power(n, align):
         return -0.1
 
+class DeathMiller(RoleBase):
+    factions = [Town]
+    name = "Townie"
+    truename = "Death Miller"
+    abilities = Townie.abilities + \
+        [Ability(Alter, Any, auto=True, resolvers=[Ability.Self()] ),
+         Ability(FakeFlip, Any, auto=True, resolvers=[Ability.Self()], args={'role':'Mafioso', 'faction':Mafia} )]
+    def power(n, align):
+        return -0.1
+
 class Godfather(RoleBase):
     factions = [Mafia]
     name = "Godfather"

@@ -218,13 +218,11 @@ class Ability:
             if state.rng.random() <= self.failure:
                 return None
             
-            if self.uses and self.uses.v > 0:
+            if self.uses:
                 if self.currentaction and self.currentaction.used:
                     self.uses.v -= 1
                 if self.uses.v <= 0:
                     return None
-            else:
-                return None
 
             resolved = self.resolvetargets(state, actor, [], [])
             print("useauto",actor,resolved,self.uses)
