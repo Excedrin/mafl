@@ -13,7 +13,7 @@ def getname(x):
 class RoleBase:
     basic = False
     factions = [Town, Cult, Mafia, Sk, Survivor]
-    def power(x):
+    def power(n, align):
         return 0
 
 class Townie(RoleBase):
@@ -21,7 +21,7 @@ class Townie(RoleBase):
     factions = [Town]
     name = "Townie"
     abilities = [Ability(Vote, Day, free=True, public=True, optargs=True, restrict=[Ability.LivingOrNL])]
-    def power(x):
+    def power(n, align):
         return 0
 
 class Mafioso(RoleBase):
@@ -29,7 +29,7 @@ class Mafioso(RoleBase):
     factions = [Mafia]
     name = "Mafioso"
     abilities = Townie.abilities
-    def power(x):
+    def power(n, align):
         return 0.33
 
 class Cultist(RoleBase):
@@ -37,7 +37,7 @@ class Cultist(RoleBase):
     factions = [Cult]
     name = "Cultist"
     abilities = Townie.abilities
-    def power(x):
+    def power(n, align):
         return 0.7
 
 class SurvivorBase(RoleBase):
@@ -45,7 +45,7 @@ class SurvivorBase(RoleBase):
     factions = [Survivor]
     name = "Survivor"
     abilities = Townie.abilities
-    def power(x):
+    def power(n, align):
         return 0
 
 class SerialKiller(RoleBase):
@@ -53,168 +53,176 @@ class SerialKiller(RoleBase):
     factions = [Sk]
     name = "Serial Killer"
     abilities = Townie.abilities + [Ability(Kill)]
-    def power(x):
+    def power(n, align):
         return 0.7
 
 class Vigilante(RoleBase):
     factions = [Town]
     name = "Vigilante"
     abilities = Townie.abilities + [Ability(Kill)]
-    def power(x):
+    def power(n, align):
         return 0.7
 
 class CrazedFiend(RoleBase):
     factions = [Town, Sk]
     name = "Crazed Fiend"
     abilities = Townie.abilities + [Ability(Kill, Any, uses=Some(1))]
-    def power(x):
+    def power(n, align):
+        if align is Sk:
+            return (4/3) - (n/9)
         return 0.7
 
 class GraveVigilante(RoleBase):
     factions = [Town, Survivor]
     name = "Grave Vigilante"
     abilities = Townie.abilities + [Ability(Kill, Any, uses=Some(1), ghost=True)]
-    def power(x):
+    def power(n, align):
         return 0.7
 
 class Cop(RoleBase):
-    factions = [Town, Survivor]
+    factions = [Town]
     abilities = Townie.abilities + [Ability(Inspect)]
     name = "Cop"
-    def power(x):
-        return 0.5
+    def power(n, align):
+        return 0.4
 
 class RoleCop(RoleBase):
     factions = [Town, Mafia]
     abilities = Townie.abilities + [Ability(Inspect, args={'sanity':Rolecop()})]
     name = "Role Cop"
-    def power(x):
+    def power(n, align):
         return 0.5
 
 class DevilsAdvocate(RoleBase):
     factions = [Sk]
     name = "Devil's Advocate"
     abilities = Townie.abilities + [Ability(Inspect, args={'sanity':Rolecop()}), Ability(Kill, Day)]
-    def power(x):
-        return 0.8
+    def power(n, align):
+        return 0.72
 
 class Doctor(RoleBase):
     factions = [Town, Mafia]
     name = "Doctor"
     abilities = Townie.abilities + [Ability(Protect)]
-    def power(x):
+    def power(n, align):
         return 0.4
 
 class BusDriver(RoleBase):
     factions = [Town, Mafia]
     name = "Bus Driver"
     abilities = Townie.abilities + [Ability(Bus, resolvers=[Ability.User(), Ability.User()])]
-    def power(x):
+    def power(n, align):
         return 0.5
 
 class Roleblocker(RoleBase):
     factions = [Town, Survivor, Mafia]
     name = "Roleblocker"
     abilities = Townie.abilities + [Ability(Block)]
-    def power(x):
+    def power(n, align):
         return 0.3
 
 class Redirecter(RoleBase):
     factions = [Town, Mafia]
     name = "Redirecter"
     abilities = Townie.abilities + [Ability(Redirect, resolvers=[Ability.User(), Ability.User()])]
-    def power(x):
+    def power(n, align):
         return 0.5
 
 class Magnet(RoleBase):
     factions = [Town, Survivor, Mafia]
     name = "Magnet"
     abilities = Townie.abilities + [Ability(Redirect, name="attract", resolvers=[Ability.User(), Ability.Self()])]
-    def power(x):
-        return 0.3
+    def power(n, align):
+        return 0.2
 
 class Randomizer(RoleBase):
     factions = [Town, Survivor, Mafia]
     name = "Randomizer"
     abilities = Townie.abilities + [Ability(Redirect, name="randomize", resolvers=[Ability.User(), Ability.Random()])]
-    def power(x):
+    def power(n, align):
         return 0.3
 
 class Tracker(RoleBase):
     factions = [Town, Mafia]
     name = "Tracker"
     abilities = Townie.abilities + [Ability(Track)]
-    def power(x):
-        return 0.5
+    def power(n, align):
+        return 0.4
 
 class Watcher(RoleBase):
     factions = [Town, Survivor, Mafia]
     name = "Watcher"
     abilities = Townie.abilities + [Ability(Watch)]
-    def power(x):
-        return 0.5
+    def power(n, align):
+        return 0.35
 
 class NightWatchman(RoleBase):
     factions = [Town, Mafia]
     name = "Night Watchman"
     abilities = Townie.abilities + [Ability(Patrol)]
-    def power(x):
-        return 0.6
+    def power(n, align):
+        if align is Mafia:
+            return 0.5
+        return 0.45
 
 class DoubleVoter(RoleBase):
-    factions = [Town, Survivor]
+    factions = [Town]
     name = "Double Voter"
     abilities = Townie.abilities + [Ability(Vote, Day, free=True, public=True, optargs=True, args={'maxvotes':2} )]
-    def power(x):
-        return 1.8 - 0.1 * x
+    def power(n, align):
+        return 1.8 - 0.1 * n
 
 class NonVoter(RoleBase):
     factions = [Town]
     name = "Nonvoter"
     abilities = Townie.abilities + [Ability(Vote, Day, free=True, public=True, optargs=True, args={'maxvotes':0} )]
-    def power(x):
-        return 0.1 * x - 1.3
+    def power(n, align):
+        return 0.1 * n - 1.3
 
 class ParanoidGunOwner(RoleBase):
     factions = [Town, Survivor]
     name = "Paranoid Gun Owner"
     abilities = Townie.abilities + [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()], args={'action':Kill(0, [])} )]
-    def power(x):
-        return 0.5
+    def power(n, align):
+        return 0.75
 
 class Eavesdropper(RoleBase):
     factions = [Town, Cult, Survivor, Mafia]
     name = "Eavesdropper"
     abilities = Townie.abilities + [Ability(Eavesdrop)]
-    def power(x):
+    def power(n, align):
+        if align is Cult:
+            return 0.6
         return 0.4
 
 class Coward(RoleBase):
     factions = [Town, Survivor, Mafia]
     name = "Coward"
     abilities = Townie.abilities + [Ability(Hide, uses=Some(1), resolvers=[Ability.Self()] )]
-    def power(x):
+    def power(n, align):
+        if align is Survivor:
+            return 0.3
         return 0.2
 
 class Framer(RoleBase):
     factions = [Mafia]
     name = "Framer"
     abilities = Townie.abilities + [Ability(Alter, name="frame", restrict=[Ability.NonTeam, Ability.Living, Ability.NonSelf])]
-    def power(x):
+    def power(n, align):
         return 0.3
 
 class Lawyer(RoleBase):
     factions = [Mafia]
     name = "Lawyer"
     abilities = Townie.abilities + [Ability(Alter, name="clear", restrict=[Ability.SameTeam, Ability.Living, Ability.NonSelf])]
-    def power(x):
+    def power(n, align):
         return 0.35
 
 class Agent(RoleBase):
     factions = [Mafia]
     name = "Agent"
     abilities = Townie.abilities + [Ability(Alter)]
-    def power(x):
+    def power(n, align):
         return 0.4
 
 class Miller(RoleBase):
@@ -222,8 +230,8 @@ class Miller(RoleBase):
     name = "Townie"
     truename = "Miller"
     abilities = Townie.abilities + [Ability(Alter, Any, auto=True, resolvers=[Ability.Self()] )]
-    def power(x):
-        return -0.2
+    def power(n, align):
+        return -0.1
 
 class Godfather(RoleBase):
     factions = [Mafia]
@@ -232,7 +240,7 @@ class Godfather(RoleBase):
         [Ability(Alter, Any, auto=True, resolvers=[Ability.Self()]), 
          Ability(Immune, Any, auto=True, resolvers=[Ability.Self()],
                     args={'immune':[Kill]})]
-    def power(x):
+    def power(n, align):
         return 0.6
 
 class Ascetic(RoleBase):
@@ -241,7 +249,11 @@ class Ascetic(RoleBase):
     abilities = Townie.abilities + \
         [Ability(Immune, Any, auto=True, resolvers=[Ability.Self()],
                     args={'not':0,'immune':[Kill]})]
-    def power(x):
+    def power(n, align):
+        if align is Cult:
+            return 0.4
+        if align is Mafia:
+            return 0.3
         return 0.2
 
 class Bulletproof(RoleBase):
@@ -250,78 +262,86 @@ class Bulletproof(RoleBase):
     abilities = Townie.abilities + \
         [Ability(Immune, Any, auto=True, resolvers=[Ability.Self()],
                     args={'immune':[Kill]})]
-    def power(x):
+    def power(n, align):
         return 0.3
 
 class Commando(RoleBase):
     factions = [Town, Sk]
     name = "Commando"
     abilities = Bulletproof.abilities + Vigilante.abilities
-    def power(x):
+    def power(n, align):
+        if align is Sk:
+            return 1.1
         return 1
 
 class ChainsawMurderer(RoleBase):
     factions = [Sk]
     name = "Chainsaw Murderer"
     abilities = Townie.abilities + [Ability(SuperKill)]
-    def power(x):
+    def power(n, align):
         return 0.71
 
 class Ninja(RoleBase):
     factions = [Town, Sk]
     name = "Ninja"
     abilities = Townie.abilities + [Ability(Kill, args={'untrackable':True})]
-    def power(x):
-        return 0.71
+    def power(n, align):
+        if align is Sk:
+            return 0.7
+        return 0.61
 
 class Delayer(RoleBase):
     factions = [Town, Survivor, Mafia, Cult]
     name = "Delayer"
     abilities = Townie.abilities + [Ability(Delay, args={'phases':2})]
-    def power(x):
+    def power(n, align):
         return 0.5
 
 class Poisoner(RoleBase):
     factions = [Town, Survivor, Sk]
     name = "Poisoner"
     abilities = Townie.abilities + [Ability(Poison, Day)]
-    def power(x):
+    def power(n, align):
+        if align is Survivor:
+            return 1
+        if align is Town:
+            return max(1.16666 - 0.055555 * n, 0)
         return 0.5
 
 class PoisonDoctor(RoleBase):
     factions = [Town, Survivor, Mafia]
     name = "Poison Doctor"
     abilities = Townie.abilities + [Ability(Antidote, restrict=[Ability.Living])]
-    def power(x):
+    def power(n, align):
         return 0.2
 
 class HumanShield(RoleBase):
     factions = [Town, Survivor, Mafia]
     name = "Human Shield"
     abilities = Townie.abilities + [Ability(Guard, args={'guard':Guard.Self})]
-    def power(x):
+    def power(n, align):
         return 0.2
 
 class Bodyguard(RoleBase):
     factions = [Town]
     name = "Bodyguard"
     abilities = Townie.abilities + [Ability(Guard)]
-    def power(x):
+    def power(n, align):
         return 0.4
 
 class EliteBodyguard(RoleBase):
     factions = [Town]
     name = "Elite Bodyguard"
     abilities = Townie.abilities + [Ability(Guard, args={'guard':Guard.Other})]
-    def power(x):
-        return 0.98 - 0.06 * x
+    def power(n, align):
+        return 0.98 - 0.06 * n
 
 class Friend(RoleBase):
     factions = [Town, Survivor]
     name = "Friendly Neighbor"
     abilities = Townie.abilities + [Ability(Friend, Day)]
-    def power(x):
-        return 0.8
+    def power(n, align):
+        return 0.6 - 0.033333 * n
 
 class Joat(RoleBase):
     factions = [Town]
@@ -329,22 +349,22 @@ class Joat(RoleBase):
     abilities = Townie.abilities + [Ability(Kill, uses=Some(1)),
                 Ability(Inspect, uses=Some(1)), Ability(Protect, uses=Some(1)),
                 Ability(Block, uses=Some(1))]
-    def power(x):
-        return 1
+    def power(n, align):
+        return 0.7 - 0.033333 * n
 
 class Stalker(RoleBase):
     factions = [Town]
     name = "Stalker"
     abilities = Townie.abilities + [Ability(Kill), Ability(Inspect)]
-    def power(x):
+    def power(n, align):
         return 1
 
 class Skulker(RoleBase):
     factions = [Town, Survivor]
     name = "Skulker"
     abilities = Townie.abilities + [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()], args={'action':Suicide(0, [])} )]
-    def power(x):
-        return -0.1
+    def power(n, align):
+        return -0.2
 
 class SuperSaint(RoleBase):
     factions = [Town, Survivor]
@@ -353,7 +373,7 @@ class SuperSaint(RoleBase):
         [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()],
             args={'action':Kill(0, [], args={'how':'was killed by an angry mob'}),
                   'triggers':[Lynch]} )]
-    def power(x):
+    def power(n, align):
         return 0.3
 
 class Bomb(RoleBase):
@@ -363,8 +383,16 @@ class Bomb(RoleBase):
         [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()],
             args={'action':Kill(0, [], args={'how':'was killed by an explosion'}),
                   'triggers':[Lynch, Kill, SuperKill]} )]
-    def power(x):
+    def power(n, align):
         return 0.6
+
+class Reviver(RoleBase):
+    factions = [Town, Survivor]
+    name = "Reviver"
+    abilities = Townie.abilities + \
+        [Ability(Resurrect, Any, auto=True, resolvers=[Ability.Self()], uses=Some(1))]
+    def power(n, align):
+        return 0.25
 
 class Tmpl:
     def __init__(self, role):
@@ -374,7 +402,7 @@ class Tmpl:
         self.name = role.name
         self.role = role
 
-        self.power = lambda x: role.power(x)
+        self.power = lambda n,align: role.power(n, align)
 
 class TmplDay(Tmpl):
     def __init__(self, role):
@@ -385,7 +413,7 @@ class TmplDay(Tmpl):
 
         self.name = "Day "+role.name
 
-        self.power = lambda x: role.power(x) + 0.2
+        self.power = lambda n,align: role.power(n, align) + 0.2
 
 class TmplOneShot:
     def __init__(self, role):
@@ -396,7 +424,7 @@ class TmplOneShot:
                 abi.uses = Some(1)
 
         self.name = "One-Shot "+role.name
-        self.power = lambda x: role.power(x) - 0.2
+        self.power = lambda n,align: max(role.power(n, align) - min(0.033333 * n - 0.1, 0.2), 0.1)
     
 class TmplIncompetent:
     def __init__(self, role):
@@ -408,7 +436,7 @@ class TmplIncompetent:
 
         self.truename = "Incompetent "+getname(role)
 
-        self.power = lambda x: role.power(x) - 0.3
+        self.power = lambda n,align: max(role.power(n, align) - 0.3, 0)
 
 class TmplConfused:
     def __init__(self, role):
@@ -423,7 +451,7 @@ class TmplConfused:
 
             self.truename = "Confused "+getname(role)
 
-            self.power = lambda x: role.power(x) - 0.3
+            self.power = lambda n,align: max(role.power(n, align) - 0.3, 0)
 
 class TmplFail:
     def __init__(self, role, fail):
@@ -436,7 +464,7 @@ class TmplFail:
 
         self.truename = "%d%% %s"%(fail * 100, getname(role))
 
-        self.power = lambda x: role.power(x) * self.fail
+        self.power = lambda n,align: max(role.power(n, align) * self.fail, 0)
 
 class TmplSanity:
     def __init__(self, role, sanity):
@@ -452,7 +480,7 @@ class TmplSanity:
         else:
             self.truename = getname(role)
 
-        self.power = lambda x: role.power(x) - 0.1
+        self.power = lambda n,align: max(role.power(n, align) - (0.1 if sanity.useful else 0.3), 0)
 
 InsaneCop = TmplSanity(Cop, Insane())
 NaiveCop = TmplSanity(Cop, Naive())
@@ -487,6 +515,8 @@ FailCop = TmplFail(Cop, 0)
 
 HalfJoat = TmplFail(Joat, 0.5)
 FailJoat = TmplFail(Joat, 0)
+
+FailPGO = TmplFail(ParanoidGunOwner, 0)
 
 def init():
     env = init.__globals__

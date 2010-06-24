@@ -19,8 +19,7 @@ class ActionBase:
         if rename:
             self.name = rename
 
-        if 'untrackable' in args:
-            self.untrackable = args['untrackable']
+        self.used = False
         for k,v in args.items():
 #            print("action set from args",k,v)
             self.__dict__[k] = v
@@ -66,6 +65,7 @@ class Vote(Action):
     notrigger = True
 
     def resolve(self, state):
+        self.used = True
         state.resolved(self)
 
         player = state.playerbyslot(self.actor)
@@ -82,8 +82,6 @@ class Alter(Action):
     priority = 19
 
     def resolve(self, state):
-        state.resolved(self)
-
         for target in self.targets:
             for act in state.queue:
                 if isinstance(act, Inspect) and target in act.targets:
@@ -91,7 +89,9 @@ class Alter(Action):
                         act.inspect = sanity.Insane(act.inspect.factions)
                     elif isinstance(act.inspect, sanity.Insane):
                         act.inspect = sanity.Sane(act.inspect.factions)
+                    self.used = True
 
+        state.resolved(self)
         return state.queue
 
 class Inspect(Action):
@@ -100,14 +100,14 @@ class Inspect(Action):
     inspect = sanity.Sane([faction.Mafia, faction.Town])
 
     def resolve(self, state):
-        state.resolved(self)
-
         for slot in self.targets:
             target = state.playerbyslotbus(slot)
 
             msg = target.name+" "+self.inspect.result(target)
             state.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
+            self.used = True
 
+        state.resolved(self)
         return state.queue
 
 class Kill(Action):
@@ -116,16 +116,17 @@ class Kill(Action):
     how = "was killed"
 
     def resolve(self, state):
-        state.resolved(self)
-
         for slot in self.targets:
             player = state.playerbyslotbus(slot)
             if player.living:
                 player.living = False
                 print("kill resolved (%s killed by %s)" % (player.name, self.actor))
-                state.message(None, "%s (%s) %s"%(player.name, player.flip(), self.how))
+                state.message(None, "%s %s"%(player.name, self.how))
                 state.resetvotes()
+                state.enqueue(Flip(self.actor, [slot]))
+                self.used = True
 
+        state.resolved(self)
         return state.queue
 
 class SuperKill(Action):
@@ -175,10 +176,42 @@ class Poison(Action):
     notrigger = True
 
     def resolve(self, state):
+        self.used = True
         state.resolved(self)
 
         delayedact = PoisonKill(0, self.targets)
         state.delay(self.phases, delayedact)
+
+        return state.queue
+
+class Flip(Action):
+    name = "flip"
+    priority = 73
+
+    def resolve(self, state):
+        for slot in self.targets:
+            player = state.playerbyslot(slot)
+            if not player.living:
+                state.message(None, "%s was a %s"%(player.name, player.flip()))
+                self.used = True
+
+        state.resolved(self)
+        return state.queue
+
+class Resurrect(Action):
+    name = "resurrect"
+    priority = 72
+    how = "returned to life"
+
+    def resolve(self, state):
+        for slot in self.targets:
+            player = state.playerbyslotbus(slot)
+            if not player.living:
+                player.living = True
+                state.message(None, "%s %s"%(player.name, self.how))
+                self.used = True
+
+        state.resolved(self)
 
         return state.queue
 
@@ -187,15 +220,18 @@ class Recruit(Action):
     priority = 75
 
     def resolve(self, state):
-        state.resolved(self)
         actor = state.playerbyslot(self.actor)
 
         for slot in self.targets:
             player = state.playerbyslotbus(slot)
             player.faction = actor.faction
 
+            state.messageslot(self.actor, "recruited %s"%player.name)
             state.message(player.name, player.fullrolepm(state))
             state.resetvotes()
+            self.used = True
+
+        state.resolved(self)
 
         return state.queue
 
@@ -204,8 +240,6 @@ class Copy(Action):
     priority = 10
 
     def resolve(self, state):
-        state.resolved(self)
-
         source = self.targets[0]
         dest = self.targets[1]
 #        print("copy src: %s dst: %s" %(source,dest))
@@ -218,7 +252,10 @@ class Copy(Action):
                 newact.targets[0] = dest
 #                print("newact:",newact)
                 newqueue.enqueue(newact)
+                self.used = True
             newqueue.enqueue(act)
+
+        state.resolved(self)
         return newqueue
 
 # bus swaps two player's seating assignments
@@ -258,8 +295,6 @@ class Delay(Action):
     phases = 1
 
     def resolve(self, state):
-        state.resolved(self)
-
         newqueue = Mqueue()
         for act in state.queue:
             if act.actor in [state.bussedslot(x) for x in self.targets]:
@@ -269,9 +304,11 @@ class Delay(Action):
                     delayedact = copy.deepcopy(act)
                     delayedact.args['delayed'] = True
                     state.delay(self.phases, delayedact)
+                    self.used = True
             else:
                 newqueue.enqueue(act)
 
+        state.resolved(self)
         return newqueue
 
 class Block(Action):
@@ -279,14 +316,15 @@ class Block(Action):
     priority = 14
 
     def resolve(self, state):
-        state.resolved(self)
         newqueue = Mqueue()
 
         for act in state.queue:
             if not act.actor in [state.bussedslot(x) for x in self.targets]:
                 newqueue.enqueue(act)
+                self.used = True
             # blocked actions don't go into resqueue
 
+        state.resolved(self)
         return newqueue
 
 class Eavesdrop(Action):
@@ -295,7 +333,6 @@ class Eavesdrop(Action):
     untrackable = True
 
     def resolve(self, state):
-        state.resolved(self)
         newqueue = Mqueue()
         for act in state.queue:
             for target in self.targets:
@@ -303,7 +340,9 @@ class Eavesdrop(Action):
                     newact = copy.deepcopy(act)
                     newact.targets = [self.actor]
                     newqueue.enqueue(newact)
+                    self.used = True
             newqueue.enqueue(act)
+        state.resolved(self)
         return newqueue
 
 class Friend(Action):
@@ -311,13 +350,14 @@ class Friend(Action):
     priority = 20
 
     def resolve(self, state):
-        state.resolved(self)
         actor = state.playerbyslot(self.actor)
 
         msg = "%s is %s" % (actor.name, actor.faction.name)
         for target in state.fix(self.targets):
             state.enqueue(Message(self.actor, [target], {'msg':msg}))
+            self.used = True
 
+        state.resolved(self)
         return state.queue
 
 class Guard(Action):
@@ -334,8 +374,6 @@ class Guard(Action):
     guard = Both
 
     def resolve(self, state):
-        state.resolved(self)
-
         killfound = False
         for target in self.targets:
             newqueue = Mqueue()
@@ -350,6 +388,9 @@ class Guard(Action):
                         # bodyguard dies also / instead of target
                         newqueue.enqueue(Kill(act.actor, [self.actor]))
                     killfound = True
+
+        self.used = killfound
+        state.resolved(self)
         return newqueue
 
     def __str__(self):
@@ -371,8 +412,6 @@ class Immune(Action):
     immune = []
 
     def resolve(self, state):
-        state.resolved(self)
-
         if 'not' in self.args:
             operator = lambda x: not x
         else:
@@ -387,11 +426,13 @@ class Immune(Action):
                             newqueue.enqueue(act)
                         elif operator(isinstance(act, immuneact)):
                             state.resqueue.enqueue(act)
+                            self.used = True
                         else:
                             newqueue.enqueue(act)
                 else:
                     newqueue.enqueue(act)
 
+        state.resolved(self)
         return newqueue
 
     def __str__(self):
@@ -411,7 +452,6 @@ class Reflex(Action):
     noimmune = True
 
     def resolve(self, state):
-
         newacts = []
         for target in self.targets:
             for act in state.queue + state.resqueue:
@@ -433,6 +473,7 @@ class Reflex(Action):
             resolved = True
 
         if resolved:
+            self.used = resolved
             state.resolved(self)
         elif not isinstance(self, Reflex2):
             newreflex = copy.deepcopy(self)
@@ -456,14 +497,14 @@ class Hide(Action):
     priority = 11
 
     def resolve(self, state):
-        state.resolved(self)
-
         newqueue = Mqueue()
         for target in self.targets:
             # all actions targeting a hidden player fail
             for act in state.queue:
                 if act.targets[0] != target:
                     newqueue.enqueue(act)
+                    self.used = True
+        state.resolved(self)
         return newqueue
 
 class Protect(Action):
@@ -471,8 +512,6 @@ class Protect(Action):
     priority = 50
 
     def resolve(self, state):
-        state.resolved(self)
-
         killfound = False
         newqueue = Mqueue()
 
@@ -485,6 +524,8 @@ class Protect(Action):
 #                    print("kill %s canceled by protect" % act.targets)
                     state.resolved(act)
 
+        self.used = killfound
+        state.resolved(self)
         return newqueue
 
 class Antidote(Action):
@@ -492,8 +533,6 @@ class Antidote(Action):
     priority = 50
 
     def resolve(self, state):
-        state.resolved(self)
-
         killfound = False
         newqueue = Mqueue()
 
@@ -509,6 +548,8 @@ class Antidote(Action):
 #        if killfound:
 #            state.delayqueue = newqueue
 
+        self.used = killfound
+        state.resolved(self)
         return newqueue
 
 class Redirect(Action):
@@ -516,8 +557,6 @@ class Redirect(Action):
     priority = 15
 
     def resolve(self, state):
-        state.resolved(self)
-
         source = self.targets[0]
         dest = self.targets[1]
 
@@ -529,8 +568,10 @@ class Redirect(Action):
                 newact.targets[0] = dest
 #                print("newact:",newact)
                 newqueue.enqueue(newact)
+                self.used = True
             else:
                 newqueue.enqueue(act)
+        state.resolved(self)
         return newqueue
 
 class Track(Action):
@@ -538,8 +579,6 @@ class Track(Action):
     priority = 90
 
     def resolve(self, state):
-        state.resolved(self)
-
         for target in self.targets:
             bussed = state.bussedslot(target)
             targets = []
@@ -553,7 +592,9 @@ class Track(Action):
                 res = "nobody"
             msg = "%s targeted %s" % (state.playerbyslot(bussed).name, res)
             state.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
+            self.used = True
 
+        state.resolved(self)
         return state.queue
 
 class Watch(Track):
@@ -561,8 +602,6 @@ class Watch(Track):
     priority = 90
 
     def resolve(self, state):
-        state.resolved(self)
-
         for target in self.targets:
             bussed = state.bussedslot(target)
             acted = False
@@ -576,7 +615,9 @@ class Watch(Track):
             msg = "%s %s" % (state.playerbyslot(bussed).name, result)
 
             state.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
+            self.used = True
 
+        state.resolved(self)
         return state.queue
 
 class Patrol(Track):
@@ -584,8 +625,6 @@ class Patrol(Track):
     priority = 90
 
     def resolve(self, state):
-        state.resolved(self)
-
         for target in self.targets:
             bussed = state.bussedslot(target)
             fakename = state.playerbyslot(target).name
@@ -603,5 +642,7 @@ class Patrol(Track):
             msg = "%s was targeted by %s" % (fakename, res)
 
             state.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
+            self.used = True
 
+        state.resolved(self)
         return state.queue

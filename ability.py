@@ -106,6 +106,8 @@ class Ability:
 
         self.untrackable = untrackable
 
+        self.currentaction = None
+
         if name:
             self.name = name
         else:
@@ -205,18 +207,28 @@ class Ability:
 
             # don't enqueue it if it fails
             if state.rng.random() > self.failure:
-                state.enqueue(self.action(actor, resolved, self.args))
+                self.currentaction = self.action(actor, resolved, self.args)
+                state.enqueue(self.currentaction)
 
             return (True, "%s (%s) confirmed"%(name,', '.join(targets)))
         return (False, err)
 
     def useauto(self, state, phase, actor):
         if self.auto and issubclass(self.phase, phase):
-            if self.uses:
-                self.uses.v -= 1
+            if state.rng.random() <= self.failure:
+                return None
+            
+            if self.uses and self.uses.v > 0:
+                if self.currentaction and self.currentaction.used:
+                    self.uses.v -= 1
+                if self.uses.v <= 0:
+                    return None
+            else:
+                return None
 
             resolved = self.resolvetargets(state, actor, [], [])
-            print("useauto",actor,resolved)
-            return self.action(actor, resolved, self.args)
+            print("useauto",actor,resolved,self.uses)
+            self.currentaction = self.action(actor, resolved, self.args)
+            return self.currentaction
         else:
             return None

@@ -27,13 +27,6 @@ def tick(bot):
         rungame(bot, True, None, None, state)
     bot.store('maf', state)
 
-def makefake(self, who, args):
-    fakecmd = args[1]
-    if fakecmd[0] == '%':
-        fakecmd = fakecmd[1:]
-    if fakecmd == 'join':
-        self.fake[args[0]] = who
-
 def run(bot, command, to, who, args):
     if not command:
         return
@@ -65,7 +58,7 @@ def run(bot, command, to, who, args):
         bot.reply(to, who, "mod commands: %s" % ", ".join(["reset",
                 "force","forcep","forcenextphase","showsetup","setrole","starttest"]))
 
-    elif public and command == "join":
+    elif public and (command == "join" or command == "start"):
         state.join(to, who)
 
     elif command == "done":
@@ -74,16 +67,19 @@ def run(bot, command, to, who, args):
     elif command == "role":
         state.fullrolepm(who)
 
+    elif command == "rolepower":
+        state.rolepower(who, args)
+
 # mod commands
     elif public and command == "force":
         if len(args) >= 2:
             run(bot, args[1], to, args[0], args[2:])
-        makefake(state, who, args)
+        state.makefake(who, args)
 
     elif public and command == "forcep":
         if len(args) >= 2:
             run(bot, args[1], "bot", args[0], args[2:])
-        makefake(state, who, args)
+        state.makefake(who, args)
 
     elif public and command == "forcenextphase":
         state.nextphase()
@@ -118,8 +114,6 @@ def run(bot, command, to, who, args):
     elif public and command == "phase":
         state.phasemsg()
 # game start cmds
-    elif public and command == "start":
-        state.start(to)
     elif public and command == "wait":
         state.wait()
     elif public and command == "go":

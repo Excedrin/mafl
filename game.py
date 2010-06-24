@@ -147,10 +147,14 @@ class Game:
         self.out = []
 
     def startphase(self):
-        self.resetqueues()
+        print("startphase")
         self.resetuses()
+        self.resetqueues()
         self.resetvotes()
         self.useautoabilities()
+
+        if self.phase == mafl.phase.Signups:
+            self.message(None, "New game starting, join now")
 
     def reset(self):
         channel = self.channel
@@ -469,9 +473,9 @@ class Game:
         byfac = {}
         for p in self.realplayers():
             if str(p.faction) in byfac:
-                byfac[str(p.faction)].append(p.name+" was "+p.truename)
+                byfac[str(p.faction)].append(p.name+" was a "+p.truename)
             else:
-                byfac[str(p.faction)] = [p.name+" was "+p.truename]
+                byfac[str(p.faction)] = [p.name+" was a "+p.truename]
         msg = []
         for k,v in byfac.items():
             msg.append("%s: %s" %(k, ", ".join(v)))
@@ -559,3 +563,22 @@ class Game:
                 self.fake[name] = who
             self.phase = mafl.phase.Signups
             self.nextphase(mafl.phase.Day)
+
+    def makefake(self, who, args):
+        fakecmd = args[1]
+        if fakecmd[0] == '%':
+            fakecmd = fakecmd[1:]
+        if fakecmd == 'join':
+            self.fake[args[0]] = who
+
+    def rolepower(self, who, args):
+        if len(args) == 3:
+            rolename = args[0]
+            n = int(args[1])
+            align = args[2]
+
+            faction = mafl.faction.factions.get(align, None)
+            r = mafl.role.roles.get(rolename, None)
+            if r and faction:
+                power = r.power(n, faction)
+                self.message(who, "%s %0.2f" %(mafl.role.getname(r), power))

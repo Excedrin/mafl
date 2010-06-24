@@ -3,3 +3,5 @@ class Some:
         self.v = v
     def __bool__(self):
         return True
+    def __str__(self):
+        return "Some(%s)" % self.v
