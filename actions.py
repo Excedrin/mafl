@@ -503,7 +503,7 @@ class Reflex(Action):
             for act in state.queue + state.resqueue:
                 if act.actor != self.actor and target in act.targets:
                     for trigger in self.triggers:
-                        if not act.notrigger and isinstance(act, trigger):  
+                        if not act.notrigger and isinstance(act, trigger):
                             if not self.action:
                                 reflexact = act
                             else:

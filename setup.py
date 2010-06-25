@@ -11,7 +11,7 @@ class Setup:
 
     def setroles(self):
         bastardly = 0.15
-        cultchance = 0.90
+        cultchance = 0.10
 
         town = mafl.faction.Town()
         maf = mafl.faction.Mafia()
