@@ -266,6 +266,8 @@ class Recruit(Action):
         if actor.living:
             for slot in self.targets:
                 player = state.playerbyslotbus(slot)
+                if 'role' in self.args:
+                    player.setrole(self.args['role'])
                 player.faction = actor.faction
 
                 msg = "recruited %s"%player.name
