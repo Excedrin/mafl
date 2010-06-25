@@ -11,7 +11,7 @@ class Setup:
 
     def setroles(self):
         bastardly = 0.15
-        cultchance = 0.10
+        cultchance = 0.90
 
         town = mafl.faction.Town()
         maf = mafl.faction.Mafia()
@@ -57,7 +57,7 @@ class Setup:
                     skcount += 1
                     baddies = mafl.faction.Sk(skcount)
 
-        scum = neutrals + [baddies for _ in range(nscum)]
+        scum = [baddies for _ in range(nscum)]
         ntown = n - (nscum + len(neutrals))
         print("ntown", ntown)
 
@@ -66,18 +66,30 @@ class Setup:
         else:
             maxscumpower = 99
 
-        scumroles = []
-        for p, f in zip(self.players, scum):
-            p.faction = f
+        neutralroles = []
+        for f in neutrals:
             fc = f.__class__
             okroles = list(filter(lambda x: x.power(n, fc) <= maxscumpower, mafl.role.faction[fc]))
             r = self.rng.choice(okroles)
-            scumroles.append(r)
-            p.setrole(r)
-            print("calling setrole for",p.name)
+            neutralroles.append((r, f))
 
-        scumpower = sum([x.power(n, align) * (0.5 if align.__class__ is mafl.faction.Survivor else 1) for (x,align) in zip(scumroles, scum)])
-        print("scumpower",scumpower,[mafl.role.getname(x) for x in scumroles])
+        scumroles = []
+
+        if baddies == cult:
+            scumroles.append((mafl.role.CultLeader, cult))
+            onecl = scum.pop()
+            if onecl != cult:
+                raise ValueError
+
+        for f in scum:
+            fc = f.__class__
+            okroles = list(filter(lambda x: x.power(n, fc) <= maxscumpower, mafl.role.faction[fc]))
+            r = self.rng.choice(okroles)
+            scumroles.append((r, f))
+
+        neutralpower = sum([x.power(n, align) for (x,align) in neutralroles])
+        scumpower = sum([x.power(n, align) for (x,align) in scumroles]) + (neutralpower / 2)
+        print("scumpower",scumpower,[mafl.role.getname(x) for x,_ in scumroles])
 
         avgscumpower = scumpower / len(scumroles)
 
@@ -103,28 +115,28 @@ class Setup:
                     print("too much town power, picking basic role",mafl.role.getname(r))
                 else:
                     r = self.rng.choice(badroles)
-                    print("repick",mafl.role.getname(r))
-                    if r in townroles:
+                    if (r,town) in townroles:
+                        print("repick",mafl.role.getname(r))
                         r = self.rng.choice(badroles)
                     print("too much town power, picking bad role",mafl.role.getname(r))
             else:
                 if normalroles:
                     r = self.rng.choice(normalroles)
-                    print("repick",mafl.role.getname(r))
-                    if r in townroles:
+                    if (r,town) in townroles:
+                        print("repick",mafl.role.getname(r))
                         r = self.rng.choice(normalroles)
                     print("picking normal role",mafl.role.getname(r))
                 else:
                     r = self.rng.choice(basicroles)
                     print("no normal roles, picking basic role",mafl.role.getname(r))
-            townroles.append(r)
-            townpower = sum([x.power(n, mafl.faction.Town) for x in townroles])
+            townroles.append((r, town))
+            townpower = sum([x.power(n, mafl.faction.Town) for x,_ in townroles])
 
-            p = self.players.pop()
-            p.faction = town
-            p.setrole(r)
+        setup = townroles + scumroles + neutralroles
+        for p, (r,f) in zip(self.players, setup):
+            p.setrole(r, f)
             print("calling setrole for",p.name)
 
-        print("townpower",townpower,[mafl.role.getname(x) for x in townroles])
+        print("townpower",townpower,[mafl.role.getname(x) for x,_ in townroles])
 
         return True

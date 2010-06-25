@@ -443,14 +443,37 @@ class Game:
         else:
             self.message(None, "player %s doesn't exist"%p1)
 
-    def setrole(self, p1, rolename, add=False):
-        newrole = mafl.role.roles.get(rolename, None)
+    def setrole(self, who, args):
+        align = "town"
+        add = False
+        if len(args) >= 2:
+            p1 = args[0]
+            rolename = args[1]
+        if len(args) == 3:
+            align = args[2]
+        if len(args) == 4:
+            add = args[3] == '+'
+
         player = self.playerbyname(p1)
-        if newrole and player:
+        newrole = mafl.role.roles.get(rolename, None)
+        faction = mafl.faction.factions.get(align, None)
+
+        facinstance = None
+        if faction:
+            for p in self.players:
+                if isinstance(p.faction, faction):
+                    facinstance = p.faction
+                    break
+            if not facinstance:
+                facinstance = faction()
+        else:
+            facinstance = player.faction
+
+        if newrole and player and facinstance:
             if add:
                 player.addrole(newrole)
             else:
-                player.setrole(newrole)
+                player.setrole(newrole, facinstance)
 
             self.useautoability(player)
 
@@ -462,6 +485,8 @@ class Game:
         elif not newrole:
             self.message(None, "didn't find role %s"%rolename)
             return False
+        elif not faction:
+            self.message(None, "didn't find faction %s"%align)
 
     def showsetup(self, who):
         for name, slot in self.slot.items():

@@ -63,10 +63,6 @@ class Cult(Faction):
     name = "cult"
     def __init__(self, number=1):
         Faction.__init__(self)
-        import ability
-        import actions
-        import phase
-        self.addability(ability.Ability(actions.Recruit, phase.Night))
     def win(self, state, player):
         alive = state.living()
         members = list(filter(lambda x: x.faction==self, alive))

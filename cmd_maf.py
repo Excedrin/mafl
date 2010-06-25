@@ -93,9 +93,8 @@ def run(bot, command, to, who, args):
         bot.notice(state.channel, "%s used showsetup"%who)
 
     elif command == "setrole" and state.channel:
-        if len(args) == 2:
-            if state.setrole(args[0], args[1]):
-                bot.notice(state.channel, "%s used setrole"%who)
+        if state.setrole(who, args):
+            bot.notice(state.channel, "%s used setrole"%who)
 
     elif command == "dump":
         dumper.max_depth = 9

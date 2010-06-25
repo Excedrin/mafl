@@ -21,7 +21,9 @@ class Actor:
     def removeability(self, ability):
         del abilities[ability.getname()]
 
-    def setrole(self, role):
+    def setrole(self, role, faction=None):
+        if faction:
+            self.faction = faction
         self.role = role.name
         self.truename = getattr(role, 'truename', role.name)
         self.abilities = {}

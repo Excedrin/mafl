@@ -38,6 +38,19 @@ class Cultist(RoleBase):
     name = "Cultist"
     abilities = Townie.abilities
     def power(n, align):
+        return 0
+
+class CultLeader(RoleBase):
+    basic = True
+    factions = [] # handled specially in setup generator
+    name = "Cult Leader"
+    abilities = Townie.abilities + \
+        [Ability(Recruit, args={'role':Cultist}),
+         Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()],
+            args={'action':Kill(0, [], args={'how':'drank the Kool-Aid'}),
+                  'resolvers':[Ability.AllTeam()],
+                  'triggers':[Lynch, Kill, SuperKill, PoisonKill]} )]
+    def power(n, align):
         return 0.7
 
 class SurvivorBase(RoleBase):

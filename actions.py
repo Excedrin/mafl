@@ -135,10 +135,13 @@ class Kill(Action):
             if player.living:
                 player.living = False
                 print("kill resolved (%s killed by %s)" % (player.name, self.actor))
-                state.message(None, "%s %s"%(player.name, self.how))
+                msg = "%s %s"%(player.name, self.how)
+                state.message(None, msg)
                 state.resetvotes()
                 state.enqueue(Flip(self.actor, [slot]))
                 self.used = True
+            else:
+                print("kill resolved (%s already dead)" % (player.name))
 
         state.resolved(self)
         return state.queue
@@ -177,7 +180,7 @@ class PoisonKill(Action):
     priority = 10
     how = "was poisoned"
 
-    notrigger = True
+#    notrigger = True
 
     def resolve(self, state):
         return Kill.resolve(self, state)
@@ -207,7 +210,7 @@ class Flip(Action):
             player = state.playerbyslot(slot)
             if not player.living:
                 msg = "%s was a %s"%(player.name, player.flip())
-                state.enqueue(PubMessage(self.actor, [], {'msg':msg}))
+                state.message(None, msg)
                 self.used = True
 
         state.resolved(self)
@@ -227,7 +230,7 @@ class FakeFlip(Action):
                         faction = self.args.get('faction', player.faction)
                         role = self.args.get('role', player.truename)
                         msg = "%s was a %s %s"%(player.name, faction.name, role)
-                        newqueue.enqueue(PubMessage(self.actor, [], {'msg':msg}))
+                        state.message(None, msg)
                         self.used = True
                 else:
                     newqueue.enqueue(act)
@@ -245,7 +248,8 @@ class Resurrect(Action):
             player = state.playerbyslotbus(slot)
             if not player.living:
                 player.living = True
-                state.message(None, "%s %s"%(player.name, self.how))
+                msg = "%s %s"%(player.name, self.how)
+                state.message(None, msg)
                 self.used = True
 
         state.resolved(self)
@@ -259,14 +263,17 @@ class Recruit(Action):
     def resolve(self, state):
         actor = state.playerbyslot(self.actor)
 
-        for slot in self.targets:
-            player = state.playerbyslotbus(slot)
-            player.faction = actor.faction
+        if actor.living:
+            for slot in self.targets:
+                player = state.playerbyslotbus(slot)
+                player.faction = actor.faction
 
-            state.messageslot(self.actor, "recruited %s"%player.name)
-            state.message(player.name, player.fullrolepm(state))
-            state.resetvotes()
-            self.used = True
+                msg = "recruited %s"%player.name
+                state.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
+
+                state.message(player.name, player.fullrolepm(state))
+                state.resetvotes()
+                self.used = True
 
         state.resolved(self)
 
@@ -488,20 +495,30 @@ class Reflex(Action):
     notrigger = True
     noimmune = True
 
+    resolvers = []
+
     def resolve(self, state):
         newacts = []
         for target in self.targets:
             for act in state.queue + state.resqueue:
                 if act.actor != self.actor and target in act.targets:
                     for trigger in self.triggers:
-                        if not act.notrigger and isinstance(act, trigger):
+                        if not act.notrigger and isinstance(act, trigger):  
                             if not self.action:
                                 reflexact = act
                             else:
                                 reflexact = self.action
                             newact = copy.deepcopy(reflexact)
                             newact.actor = target
-                            newact.targets = [act.actor]
+                            newact.targets = []
+
+                            print("reflex resolvers",self.resolvers)
+                            for resolver in self.resolvers:
+                                print("calling resolver gettargets")
+                                newact.targets.extend(resolver.gettargets(state, self.actor, act.actor, []))
+                            if not newact.targets:
+                                newact.targets = [act.actor]
+                            print("newact targets:",newact.targets,state.names(newact.targets))
                             newacts.append(newact)
 
         resolved = False

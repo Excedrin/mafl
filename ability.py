@@ -46,6 +46,16 @@ class Ability:
         def gettargets(self, state, actor, target, slots):
             return [slots[self.n]]
 
+    class AllTeam:
+        forced = True
+        def gettargets(self, state, actor, target, slots):
+            p1 = state.playerbyslot(actor)
+            faction = p1.faction
+            everyone = Ability.EveryoneElse.gettargets(self, state, actor, target, slots)
+            ret = [x for x in everyone if state.playerbyslot(x).faction == faction]
+            print("all team resolver", actor, faction.name, ret)
+            return ret
+
 # target restrictions
     class Dead:
         desc = "dead"
