@@ -553,7 +553,7 @@ class Game:
                 return "; ".join(msg)
 
     def gotest(self, to, who, args):
-        if len(args) >= 1 and int(args[0]) < 26 and self.phase == mafl.phase.Idle:
+        if len(args) >= 1 and int(args[0]) <= 26 and self.phase == mafl.phase.Idle:
             self.verbose = True
             self.start(to)
             n = int(args[0])
@@ -576,6 +576,8 @@ class Game:
             rolename = args[0]
             n = int(args[1])
             align = args[2]
+            if n > 26:
+                return
 
             faction = mafl.faction.factions.get(align, None)
             r = mafl.role.roles.get(rolename, None)

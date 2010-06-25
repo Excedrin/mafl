@@ -103,16 +103,16 @@ class Setup:
                     print("too much town power, picking basic role",mafl.role.getname(r))
                 else:
                     r = self.rng.choice(badroles)
+                    print("repick",mafl.role.getname(r))
                     if r in townroles:
                         r = self.rng.choice(badroles)
-                        print("repick",mafl.role.getname(r))
                     print("too much town power, picking bad role",mafl.role.getname(r))
             else:
                 if normalroles:
                     r = self.rng.choice(normalroles)
+                    print("repick",mafl.role.getname(r))
                     if r in townroles:
                         r = self.rng.choice(normalroles)
-                        print("repick",mafl.role.getname(r))
                     print("picking normal role",mafl.role.getname(r))
                 else:
                     r = self.rng.choice(basicroles)

@@ -69,7 +69,7 @@ class CrazedFiend(RoleBase):
     abilities = Townie.abilities + [Ability(Kill, Any, uses=Some(1))]
     def power(n, align):
         if align is Sk:
-            return (4/3) - (n/9)
+            return min((4/3) - (n/9), 0.3)
         return 0.7
 
 class GraveVigilante(RoleBase):
@@ -129,7 +129,7 @@ class Redirecter(RoleBase):
         return 0.5
 
 class Magnet(RoleBase):
-    factions = [Town, Survivor, Mafia]
+    factions = [Town, Survivor]
     name = "Magnet"
     abilities = Townie.abilities + [Ability(Redirect, name="attract", resolvers=[Ability.User(), Ability.Self()])]
     def power(n, align):
@@ -170,14 +170,14 @@ class DoubleVoter(RoleBase):
     name = "Double Voter"
     abilities = Townie.abilities + [Ability(Vote, Day, free=True, public=True, optargs=True, args={'maxvotes':2} )]
     def power(n, align):
-        return 1.8 - 0.1 * n
+        return min(1.8 - 0.1 * n, 0.3)
 
 class NonVoter(RoleBase):
     factions = [Town]
     name = "Nonvoter"
     abilities = Townie.abilities + [Ability(Vote, Day, free=True, public=True, optargs=True, args={'maxvotes':0} )]
     def power(n, align):
-        return 0.1 * n - 1.3
+        return max(0.1 * n - 1.3, 0)
 
 class ParanoidGunOwner(RoleBase):
     factions = [Town, Survivor]
@@ -315,7 +315,7 @@ class Poisoner(RoleBase):
         if align is Survivor:
             return 1
         if align is Town:
-            return max(1.16666 - 0.055555 * n, 0)
+            return max(1.16666 - 0.055555 * n, 0.3)
         return 0.5
 
 class PoisonDoctor(RoleBase):
@@ -344,14 +344,14 @@ class EliteBodyguard(RoleBase):
     name = "Elite Bodyguard"
     abilities = Townie.abilities + [Ability(Guard, args={'guard':Guard.Other})]
     def power(n, align):
-        return 0.98 - 0.06 * n
+        return min(0.98 - 0.06 * n, 0.2)
 
 class Friend(RoleBase):
     factions = [Town, Survivor]
     name = "Friendly Neighbor"
     abilities = Townie.abilities + [Ability(Friend, Day)]
     def power(n, align):
-        return 0.6 - 0.033333 * n
+        return min(0.6 - 0.033333 * n, 0.2)
 
 class Joat(RoleBase):
     factions = [Town]
@@ -360,7 +360,7 @@ class Joat(RoleBase):
                 Ability(Inspect, uses=Some(1)), Ability(Protect, uses=Some(1)),
                 Ability(Block, uses=Some(1))]
     def power(n, align):
-        return 0.7 - 0.033333 * n
+        return min(0.7 - 0.033333 * n, 0.2)
 
 class Stalker(RoleBase):
     factions = [Town]
