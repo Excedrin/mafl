@@ -14,7 +14,6 @@ class Game:
 
         self.queue = mafl.Mqueue()
         self.resqueue = mafl.Mqueue()
-        self.autoqueue = mafl.Mqueue()
         self.delayqueue = mafl.Mqueue()
 
         self.bus = {}
@@ -112,7 +111,7 @@ class Game:
         if self.queue:
             if self.verbose:
                 print("resolve",self.queue)
-            self.queue.merge(self.autoqueue)
+            self.useautoabilities()
             count = len(self.queue) + 10
             if self.verbose:
                 print("resolve",count)
@@ -131,7 +130,6 @@ class Game:
         self.resqueue = mafl.Mqueue()
 
     def resetqueues(self):
-        self.autoqueue = mafl.Mqueue()
         self.resqueue = mafl.Mqueue()
         self.queue = mafl.Mqueue()
 
@@ -151,7 +149,7 @@ class Game:
         self.resetuses()
         self.resetqueues()
         self.resetvotes()
-        self.useautoabilities()
+#        self.useautoabilities()
 
         if self.phase == mafl.phase.Signups:
             self.message(None, "New game starting, join now")
@@ -197,6 +195,7 @@ class Game:
     def checkwin(self):
         winners = []
         losers = []
+        draw = []
         for name, slot in self.slot.items():
             player = self.playerbyslot(slot)
             if not player.virtual:
@@ -204,8 +203,9 @@ class Game:
                     winners.append(slot)
                 else:
                     losers.append(slot)
+                draw.append(slot)
         if not self.living():
-            return ((), (), list(self.slot.keys()))
+            return ((), (), draw)
         if winners:
             return (winners, losers, ())
         return ((), (), ())
@@ -222,7 +222,8 @@ class Game:
 
     def wait(self):
         if self.phase == mafl.phase.Signups:
-            if self.timers.remaining('start') < 61:
+            remaining = self.timers.remaining('start')
+            if remaining and remaining < 61:
                 self.timers.settimer('start', 61)
                 self.message(None, "game start delayed %d seconds"%61)
 
@@ -231,17 +232,18 @@ class Game:
             if now == "now":
                 self.nextphase()
             else:
-                if self.timers.remaining('start') > 11:
+                remaining = self.timers.remaining('start')
+                if remaining and remaining.v > 11:
                     self.timers.settimer('start', 11)
 
     def tick(self):
         if self.phase == mafl.phase.Signups:
             remaining = self.timers.remaining('start')
-            if remaining < 0:
+            if remaining and remaining.v < 0:
                 self.nextphase()
-            elif remaining in (307,229,97,31,7):
+            elif remaining and remaining.v in (307,229,97,31,7):
                 self.timers.dec('start')
-                self.message(None, "game starts in %d seconds"%(remaining))
+                self.message(None, "game starts in %d seconds"%(remaining.v))
 
         if self.phase == mafl.phase.Day:
             self.timers.setfirst('vote', 181)
@@ -252,15 +254,26 @@ class Game:
         if self.phase == mafl.phase.Night:
             self.timers.setfirst('night', 181)
             remaining = self.timers.remaining('night')
-            if remaining in (173,89,37,11):
+            if remaining and remaining.v in (173,89,37,11):
                 self.timers.dec('night')
-                self.message(None, "night ends in %d seconds"%(remaining))
-            if remaining < 0:
+                self.message(None, "night ends in %d seconds"%(remaining.v))
+            if remaining and remaining.v < 0:
                 self.message(None, "night timed out")
                 self.nextphase()
 
             if self.timers.expired('randomize'):
                 self.nextphase()
+
+        for p in self.living():
+            remaining = self.timers.remaining('%' + p.name.lower())
+            if remaining and remaining.v in (23,5):
+                self.message(p.name, "modkill in %d seconds"%remaining.v)
+                self.timers.dec('%' + p.name.lower())
+            if remaining and remaining.v <= 0:
+                target = self.slotbyname(p.name)
+
+                self.enqueue(mafl.actions.Disable(0, [target]))
+                self.enqueue(mafl.actions.SuperKill(0, [target], args={'how':'died of boredom'}))
 
     def phasemsg(self, who=None):
         self.message(who, self.phase.name)
@@ -303,7 +316,7 @@ class Game:
         abilities = player.allabilities()
         for action in filter(None, map(lambda x: x.useauto(self, self.phase, slot), abilities)):
             print("enqueue(auto)",action)
-            self.autoqueue.enqueue(action)
+            self.enqueue(action)
 
     def useautoabilities(self):
         for player in self.players:
@@ -357,6 +370,8 @@ class Game:
                         player = self.playerbyslot(slot)
                         if not player.virtual:
                             self.message(name, player.fullrolepm(self))
+                        # auto modkill timer
+                        self.timers.settimer('%' + name.lower(), 307)
                 else:
                     self.message(None, "Failed to assign roles, canceled game")
                     self.nextphase(mafl.phase.Done)
@@ -437,6 +452,8 @@ class Game:
 
             if p1 in self.fake:
                 self.fake[p2] = self.fake[p1]
+            self.timers.remove('%'+p1.lower())
+            self.timers.settimer('%'+p2.lower(), 307)
             self.message(None, "replaced %s with %s"%(p1,p2))
         elif slot2:
             self.message(None, "player %s is already playing"%p2)
@@ -526,6 +543,8 @@ class Game:
     def tryability(self, who, public, ability, args):
         player = self.playerbyname(who)
         if player:
+            self.timers.settimer(who.lower(), 307)
+
             print("found player:",who,player)
             try:
                 cleaned = []

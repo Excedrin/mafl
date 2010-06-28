@@ -11,6 +11,7 @@ class ActionBase:
     untrackable = False
     noimmune = False
     notrigger = False
+    noblock = False
 
     def __init__(self, actor, targets, args={}, rename=None):
         self.actor = actor
@@ -149,6 +150,9 @@ class Kill(Action):
 class SuperKill(Action):
     name = "superkill"
     priority = 70
+    how = "was killed"
+
+    noimmune = True
 
     def resolve(self, state):
         return Kill.resolve(self, state)
@@ -169,9 +173,9 @@ class Suicide(Action):
 
     noimmune = True
     notrigger = True
+    noblock = True
 
     def resolve(self, state):
-        self.targets = [self.actor]
         return Kill.resolve(self, state)
 
 # resolve earlier than hide
@@ -259,6 +263,7 @@ class Resurrect(Action):
 class Recruit(Action):
     name = "recruit"
     priority = 75
+    msg = 'recruited'
 
     def resolve(self, state):
         actor = state.playerbyslot(self.actor)
@@ -268,14 +273,23 @@ class Recruit(Action):
                 player = state.playerbyslotbus(slot)
                 if 'role' in self.args:
                     player.setrole(self.args['role'])
-                player.faction = actor.faction
+                dorecruit = False
+                if 'okalign' in self.args:
+                    for okalign in self.args['okalign']:
+                        if isinstance(player.faction, okalign):
+                            dorecruit = True
+                else: # no restriction, so recruit anyone
+                    dorecruit = True
 
-                msg = "recruited %s"%player.name
-                state.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
+                if dorecruit:
+                    player.faction = actor.faction
 
-                state.message(player.name, player.fullrolepm(state))
-                state.resetvotes()
-                self.used = True
+                    msg = "%s %s"%(self.msg, player.name)
+                    state.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
+
+                    state.message(player.name, player.fullrolepm(state))
+                    state.resetvotes()
+                    self.used = True
 
         state.resolved(self)
 
@@ -360,12 +374,13 @@ class Delay(Action):
 class Block(Action):
     name = "block"
     priority = 14
+    superblock = False
 
     def resolve(self, state):
         newqueue = Mqueue()
 
         for act in state.queue:
-            if not act.actor in [state.bussedslot(x) for x in self.targets]:
+            if not act.noblock and not act.actor in self.targets:
                 newqueue.enqueue(act)
                 self.used = True
             # blocked actions don't go into resqueue
@@ -487,6 +502,17 @@ class Immune(Action):
             msg.insert(0, 'not')
         msg.append(", ".join([x.name for x in self.immune]))
         return " ".join(msg)
+
+class Disable(Action):
+    name = "disable"
+    priority = 7
+    superblock = True
+    phases = 2
+    def resolve(self, state):
+        delayedact = Block(0, self.targets, args={'super':True})
+        state.delay(self.phases, delayedact)
+
+        return Block.resolve(self, state)
 
 class Reflex(Action):
     name = "reflex"

@@ -1,4 +1,5 @@
 import time
+from misc import Some
 
 class Timers:
     def __init__(self):
@@ -14,13 +15,21 @@ class Timers:
     def remaining(self, name):
         if name in self.timers:
             timer = self.timers[name]
-            return int(timer - time.time())
+            return Some(int(timer - time.time()))
         else:
-            return 0
+            return None
 
     def expired(self, name):
-        return self.remaining(name) < 0
+        remain = self.remaining(name)
+        if remain:
+            return remain.v < 0
+        else:
+            return False
 
     def dec(self, name):
         if name in self.timers:
             self.timers[name] -= 1
+
+    def remove(self, name):
+        if name in self.timers:
+            del self.timers[name]
