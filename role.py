@@ -479,6 +479,22 @@ class Mimic(RoleBase):
     def power(n, align):
         return 0.23
 
+class Morpher(RoleBase):
+    factions = [Town, Sk]
+    name = "Morpher"
+    abilities = Townie.abilities + \
+        [Ability(Morph)]
+    def power(n, align):
+        return 0.33
+
+class AntiDoctor(RoleBase):
+    factions = [Mafia]
+    name = "Anti-Doctor"
+    abilities = Townie.abilities + \
+        [Ability(ReverseProtect)]
+    def power(n, align):
+        return 0.4
+
 class Tmpl:
     def __init__(self, role):
         self.__class__ = RoleBase

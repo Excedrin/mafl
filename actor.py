@@ -12,6 +12,9 @@ class Actor:
         else:
             return None
 
+    def clearabilities(self):
+        self.abilities = {}
+
     def addability(self, ability):
         self.abilities[ability.getname()] = copy.deepcopy(ability)
 

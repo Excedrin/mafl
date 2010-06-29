@@ -4,6 +4,9 @@ import sanity
 from misc import Some
 import copy
 
+import ability
+import phase
+
 class ActionBase:
     name = "none"
     priority = 99999999
@@ -596,6 +599,29 @@ class Hide(Action):
         state.resolved(self)
         return newqueue
 
+class ReverseProtect(Action):
+    name = "reverseprotect"
+    priority = 45
+
+    def resolve(self, state):
+        protectfound = False
+        newqueue = Mqueue()
+
+        for target in self.targets:
+            for act in state.queue:
+                if protectfound or (not (isinstance(act, Protect)
+                                    and target in act.targets)):
+                    newqueue.enqueue(act)
+                else:
+                    print("reverseprotect found protect, enqueuing kill")
+                    newqueue.enqueue(Kill(self.actor, act.targets))
+                    protectfound = True
+                    state.resolved(act)
+
+        self.used = protectfound
+        state.resolved(self)
+        return newqueue
+
 class Protect(Action):
     name = "protect"
     priority = 50
@@ -777,6 +803,30 @@ class Swap(Action):
 
             state.message(p1.name, p1.fullrolepm(state))
             state.message(p2.name, p2.fullrolepm(state))
+            state.resolved(self)
+        else:
+            print(self.name + " requires 2 targets")
+
+        return state.queue
+
+class Morph(Action):
+    name = "morph"
+    priority = 43
+
+    def resolve(self, state):
+        if len(self.targets) == 1:
+            p1 = state.playerbyslot(self.actor)
+            p2 = state.playerbyslot(self.targets[0])
+            print("morph %s %s -> %s %s"%(p1.name, p1.role, p2.name, p2.role))
+
+            p1.role = p2.role
+            p1.truename = p2.truename
+            p1.clearabilities()
+            for abi in p2.allabilities():
+                p1.addability(abi)
+            p1.addability(ability.Ability(FakeFlip, phase.Any, auto=True, resolvers=[ability.Ability.Self()], args={'faction':p2.faction} ))
+
+            state.message(p1.name, p1.fullrolepm(state))
             state.resolved(self)
         else:
             print(self.name + " requires 2 targets")
