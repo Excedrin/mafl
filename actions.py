@@ -728,3 +728,25 @@ class Patrol(Track):
 
         state.resolved(self)
         return state.queue
+
+class Steal(Action):
+    name = "steal"
+    priority = 41
+
+    def resolve(self, state):
+        for target in state.fix(self.targets):
+            player = state.playerbyslot(target)
+            abis = list(filter(lambda x:not x.auto and not x.nosteal, 
+                        player.abilities.values()))
+
+            if abis:
+                abi = state.rng.choice(abis)
+                actor = state.playerbyslot(self.actor)
+                player.removeability(abi)
+                actor.addability(abi)
+                self.used = True
+                msg = "stole %s" %(abi)
+                state.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
+            
+        state.resolved(self)
+        return state.queue

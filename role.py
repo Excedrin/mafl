@@ -22,7 +22,8 @@ class Townie(RoleBase):
     basic = True
     factions = [Town]
     name = "Townie"
-    abilities = [Ability(Vote, Day, free=True, public=True, optargs=True, restrict=[Ability.LivingOrNL])]
+    abilities = [Ability(Vote, Day, free=True, public=True, optargs=True,
+        nosteal=True, restrict=[Ability.LivingOrNL])]
     def power(n, align):
         return 0
 
@@ -445,6 +446,14 @@ class Disabler(RoleBase):
         [Ability(Disable)]
     def power(n, align):
         return 0.35
+
+class Thief(RoleBase):
+    factions = [Town, Mafia]
+    name = "Thief"
+    abilities = Townie.abilities + \
+        [Ability(Steal)]
+    def power(n, align):
+        return 0.4
 
 class Tmpl:
     def __init__(self, role):

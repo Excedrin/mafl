@@ -16,10 +16,10 @@ class Actor:
         self.abilities[ability.getname()] = copy.deepcopy(ability)
 
     def removeabilitybyname(self, name):
-        del abilities[name]
+        del self.abilities[name]
 
     def removeability(self, ability):
-        del abilities[ability.getname()]
+        del self.abilities[ability.getname()]
 
     def setrole(self, role, faction=None):
         if faction:
