@@ -117,8 +117,9 @@ class Inspect(Action):
     def resolve(self, state):
         for slot in self.targets:
             target = state.playerbyslotbus(slot)
+            intended = state.playerbyslot(slot)
 
-            msg = target.name+" "+self.inspect.result(target)
+            msg = intended.name+" "+self.inspect.result(target)
             state.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
             self.used = True
 
@@ -300,22 +301,25 @@ class Copy(Action):
     priority = 10
 
     def resolve(self, state):
-        source = self.targets[0]
-        dest = self.targets[1]
-#        print("copy src: %s dst: %s" %(source,dest))
+        if len(self.targets) == 2:
+            source = self.targets[0]
+            dest = self.targets[1]
+#            print("copy src: %s dst: %s" %(source,dest))
 
-        newqueue = Mqueue()
-        for act in state.queue:
-            if act.actor == source:
-                newact = copy.deepcopy(act)
-                newact.actor = source
-                newact.targets[0] = dest
-#                print("newact:",newact)
-                newqueue.enqueue(newact)
-                self.used = True
-            newqueue.enqueue(act)
+            newqueue = Mqueue()
+            for act in state.queue:
+                if act.actor == source:
+                    newact = copy.deepcopy(act)
+                    newact.actor = source
+                    newact.targets[0] = dest
+#                    print("newact:",newact)
+                    newqueue.enqueue(newact)
+                    self.used = True
+                newqueue.enqueue(act)
 
-        state.resolved(self)
+            state.resolved(self)
+        else:
+            print(self.name + " requires 2 targets")
         return newqueue
 
 # bus swaps two player's seating assignments
@@ -331,20 +335,23 @@ class Bus(Action):
     priority = 12
 
     def resolve(self, state):
-        state.resolved(self)
+        if len(self.targets) == 2:
+            source = self.targets[0]
+            dest = self.targets[1]
 
-        source = self.targets[0]
-        dest = self.targets[1]
+            if source in state.bus:
+                state.bus[source].append(dest)
+            else:
+                state.bus[source] = [dest]
+            if dest in state.bus:
+                state.bus[dest].append(source)
+            else:
+                state.bus[dest] = [source]
 
-        if source in state.bus:
-            state.bus[source].append(dest)
-        else:
-            state.bus[source] = [dest]
-        if dest in state.bus:
-            state.bus[dest].append(source)
-        else:
-            state.bus[dest] = [source]
+            state.resolved(self)
 #        print("state.bus",state.bus)
+        else:
+            print(self.name + " requires 2 targets")
 
         return state.queue
 
@@ -639,21 +646,24 @@ class Redirect(Action):
     priority = 15
 
     def resolve(self, state):
-        source = self.targets[0]
-        dest = self.targets[1]
+        if len(self.targets) == 2:
+            source = self.targets[0]
+            dest = self.targets[1]
 
-        newqueue = Mqueue()
-        for act in state.queue:
-            # don't redirect self targeted actions
-            if act.actor == source and act.targets[0] != act.actor:
-                newact = copy.deepcopy(act)
-                newact.targets[0] = dest
-#                print("newact:",newact)
-                newqueue.enqueue(newact)
-                self.used = True
-            else:
-                newqueue.enqueue(act)
-        state.resolved(self)
+            newqueue = Mqueue()
+            for act in state.queue:
+                # don't redirect self targeted actions
+                if act.actor == source and act.targets[0] != act.actor:
+                    newact = copy.deepcopy(act)
+                    newact.targets[0] = dest
+                    #print("newact:",newact)
+                    newqueue.enqueue(newact)
+                    self.used = True
+                else:
+                    newqueue.enqueue(act)
+            state.resolved(self)
+        else:
+            print(self.name + " requires 2 targets")
         return newqueue
 
 class Track(Action):
@@ -749,4 +759,26 @@ class Steal(Action):
                 state.enqueue(Message(self.actor, [self.actor], {'msg':msg}))
             
         state.resolved(self)
+        return state.queue
+
+class Swap(Action):
+    name = "swap"
+    priority = 42
+
+    def resolve(self, state):
+        if len(self.targets) == 2:
+            p1 = state.playerbyslot(self.targets[0])
+            p2 = state.playerbyslot(self.targets[1])
+            print("swap %s %s <-> %s %s"%(p1.name, p1.role, p2.name, p2.role))
+
+            p1.role, p2.role = p2.role, p1.role
+            p1.truename, p2.truename = p2.truename, p1.truename
+            p1.abilities, p2.abilities = p2.abilities, p1.abilities
+
+            state.message(p1.name, p1.fullrolepm(state))
+            state.message(p2.name, p2.fullrolepm(state))
+            state.resolved(self)
+        else:
+            print(self.name + " requires 2 targets")
+
         return state.queue

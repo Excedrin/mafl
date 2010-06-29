@@ -35,6 +35,13 @@ class Ability:
             nonself = Ability.EveryoneElse.gettargets(self, state, actor, target, slots)
             return [state.rng.choice(nonself)]
 
+    class RandomNonSelfUnique:
+        forced = True
+        def gettargets(self, state, actor, target, slots):
+            nonself = Ability.EveryoneElse.gettargets(self, state, actor, target, slots)
+            unique = [x for x in nonself if not x in slots]
+            return [state.rng.choice(unique)]
+
     # secretly replace target w/random target
     class RandomSecret(Random):
         forced = False
@@ -145,7 +152,7 @@ class Ability:
     def __str__(self):
         # instantiate an action to get it to format itself
         act = self.action(0, [], self.args, rename=self.getname())
-        desc = [str(act), "(%s phase)" % self.phase.name]
+        desc = [str(act), "(%s)" % self.phase.name]
         if self.auto:   
             desc.insert(0, "auto")
         if self.ghost:   
@@ -165,6 +172,7 @@ class Ability:
         tmp.extend(["" for _ in range(len(self.resolvers))])
         for resolver in self.resolvers:
             target = tmp.pop(0)
+            slots[0:len(resolved)] = resolved
             resolved.extend(resolver.gettargets(state, actor, target, slots))
 
         print("resolved",resolved)

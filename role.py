@@ -455,6 +455,30 @@ class Thief(RoleBase):
     def power(n, align):
         return 0.4
 
+class Shuffler(RoleBase):
+    factions = [Town, Mafia]
+    name = "Shuffler"
+    abilities = Townie.abilities + \
+        [Ability(Swap, name="shuffle", resolvers=[Ability.RandomNonSelfUnique(), Ability.RandomNonSelfUnique()])]
+    def power(n, align):
+        return 0.4
+
+class Changeling(RoleBase):
+    factions = [Town, Survivor]
+    name = "Changeling"
+    abilities = Townie.abilities + \
+        [Ability(Swap, name="exchange", resolvers=[Ability.User(), Ability.Self()])]
+    def power(n, align):
+        return 0.35
+
+class Mimic(RoleBase):
+    factions = [Town, Mafia]
+    name = "Mimic"
+    abilities = Townie.abilities + \
+        [Ability(Bus, name="mimic", resolvers=[Ability.User(), Ability.Self()])]
+    def power(n, align):
+        return 0.23
+
 class Tmpl:
     def __init__(self, role):
         self.__class__ = RoleBase

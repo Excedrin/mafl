@@ -54,7 +54,9 @@ class Game:
         return self.players[slot]
 
     def bussedslot(self, slot):
-        return self.rng.choice(self.bus.get(slot, [slot]))
+        zuh = self.bus.get(slot, [slot])
+        print("in bussed slot",zuh)
+        return self.rng.choice(zuh)
 
     def playerbyslotbus(self, slot):
         return self.playerbyslot(self.bussedslot(slot))
