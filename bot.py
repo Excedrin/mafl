@@ -76,7 +76,11 @@ class Bot():
     def send(self, msg):
         bmsg = bytes(msg.encode('utf8')) + b"\r\n"
         self.sent += len(bmsg)
-        self.s.send(bmsg)
+        try:
+            self.s.send(bmsg)
+        except socket.error as message:
+            print("exception sending to server socket",message)
+
 
     def notice(self, to, msg):
         if not self.dcchack(to,msg):
@@ -91,7 +95,16 @@ class Bot():
         res = tl in self.viadcc
         if res:
             bmsg = bytes(msg.encode('utf8')) + b"\r\n"
-            self.viadcc[to.lower()].send(bmsg)
+            try:
+                self.viadcc[tl].send(bmsg)
+            except socket.error as message:
+                print("exception on dcc socket",message)
+                dccsock = self.viadcc[tl]
+                self.p.unregister(dccsock)
+                del self.viadcc[tl]
+                del self.fdmap[dccsock.fileno()]
+                dccsock.close()
+
         return res
 
     def reply(self, to, who, msg):
@@ -114,9 +127,27 @@ class Bot():
             self.send('USER %s %s %s :%s' %(self.user,self.user,self.user,self.realname))
             print("connected")
 
+    def ipstr(self, ipstr):
+        res = 0
+        for o,n in zip(ipstr.split('.'), range(4)):
+            res += int(o) << ((3-n) * 8)
+        return res
+
+    def listendcc(self, who, port):
+        print("listen on port %d for %s"%(port, who))
+        s = socket.socket()
+        s.bind(('0.0.0.0', port))
+        s.listen(2)
+        (newsock, remote) = s.accept()
+        self.viadcc[nick(who).lower()] = newsock
+        self.fdmap[newsock.fileno()] = (who, newsock)
+        self.p.register(newsock, select.POLLIN | select.POLLERR | select.POLLHUP)
+        print("connected to",remote)
+        s.close()
+
     def parsectcp(self, who, dat, rest):
         print("ctcp: %s %s %s" %(who, dat,rest))
-#ctcp: DCC ['CHAT', 'CHAT', '2130706433', '56772']
+        #ctcp: DCC ['CHAT', 'CHAT', '2130706433', '56772']
         if dat == 'DCC' and len(rest) == 4 and rest[0] == 'CHAT':
             ipint = int(rest[2])
             port = int(rest[3])
@@ -128,7 +159,7 @@ class Bot():
                 newsock.connect((ipstr, port))
                 self.viadcc[nick(who).lower()] = newsock
                 self.fdmap[newsock.fileno()] = (who, newsock)
-                self.p.register(newsock, select.POLLIN)
+                self.p.register(newsock, select.POLLIN | select.POLLERR | select.POLLHUP)
                 print("connected")
             except socket.error as message:
                 print("dcc chat error",message)
@@ -185,17 +216,24 @@ class Bot():
                 who = nick(fields[0])
 
                 if fields[3].startswith(':\x01'):
-                    # got ctcp
+                    # got ctcp/action
                     print("ctcp fields",fields)
                     ctcp = fields[3][2:]
                     rest = fields[4:]
                     rest[-1] = rest[-1][0:-1]
                     self.parsectcp(fields[0], ctcp, rest)
                     return
-                else:
-                    msg = clean(" ".join(fields[3:]))
-                    print("<%s> %s" %(who, msg))
 
+                msg = clean(" ".join(fields[3:]))
+                print("<%s> %s" %(who, msg))
+
+                if msg == "%dccchat":
+                    ipstr = self.ipstr(self.cfg['dccip'])
+                    port = self.rng.randint(int(self.cfg['dccminport']), int(self.cfg['dccmaxport']))
+                    self.privmsg(who,"\x01DCC CHAT CHAT %s %d\x01"%(ipstr, port))
+                    self.listendcc(fields[0], port)
+                    print("sent dcc req",who)
+                    return
                 if msg == "%reload":
                     print("got reload")
 #                if fields[2] == self.nick and msg == "%reload":
@@ -262,28 +300,36 @@ class Bot():
         self.connect()
 
         self.p = select.poll()
-        self.p.register(self.s, select.POLLIN)
+        self.p.register(self.s, select.POLLIN | select.POLLERR | select.POLLHUP)
 
         self.fdmap = {}
         self.fdmap[self.s.fileno()] = (None, self.s)
 
         while not self.exit and not self.reload:
             for fd,event in self.p.poll(1000):
-                self.ratelimit()
-                if event & select.POLLIN and fd in self.fdmap:
+                if fd in self.fdmap:
+                    self.ratelimit()
                     (dcc, sock) = self.fdmap[fd]
-                    buf = sock.recv(4096).decode('utf8')
-                    self.recvd += len(buf)
-                    lines = sep.split(buf)
-                    for line in lines:
-                        if line:
-#                            dump=" ".join(["%02x"%ord(x) for x in line])
-#                            print("dump",dump)
-                            if dcc:
-                                line = dcc+" PRIVMSG "+self.nick+" :"+line
-#                                print("hax dcc line",line)
-                            self.parse(color.sub("",line))
-                    sys.stdout.flush()
+                    if event & select.POLLIN:
+                        buf = sock.recv(4096).decode('utf8')
+                        self.recvd += len(buf)
+                        lines = sep.split(buf)
+                        for line in lines:
+                            if line:
+                                #dump=" ".join(["%02x"%ord(x) for x in line])
+                                #print("dump",dump)
+                                if dcc:
+                                    line = dcc+" PRIVMSG "+self.nick+" :"+line
+                                    #print("hax dcc line",line)
+                                self.parse(color.sub("",line))
+                        sys.stdout.flush()
+                    elif event & (select.POLLHUP|select.POLLERR):
+                        print("got hup/err on ",fd)
+                        if dcc and nick(dcc) in self.viadcc:
+                            del self.viadcc[nick(dcc)]
+                else:
+                    print("fd not in map",fd)
+                    
 
             else: # poll timeout
                 self.tick()
