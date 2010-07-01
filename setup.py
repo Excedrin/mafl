@@ -5,11 +5,16 @@ def bastard(role, n, fac):
     return role.power(n, fac) < 0 or getattr(role, 'truename', False)
 
 class Setup:
-    def __init__(self, rng, players):
+    def __init__(self, rng):
         self.rng = rng
-        self.players = list(players)
+        self.roles = []
 
-    def setroles(self):
+    def setroles(self, players):
+        self.rng.shuffle(players)
+        for p, (r,f) in zip(players, self.roles):
+            p.setrole(r,f)
+
+    def getroles(self, n):
         bastardly = 0.15
         cultchance = 0.10
 
@@ -17,9 +22,6 @@ class Setup:
         maf = mafl.faction.Mafia()
         cult = mafl.faction.Cult()
         survivor = mafl.faction.Survivor()
-
-        self.rng.shuffle(self.players)
-        n = len(self.players)
 
         if n < 3:
             return False
@@ -89,7 +91,7 @@ class Setup:
 
         neutralpower = sum([x.power(n, align) for (x,align) in neutralroles])
         scumpower = sum([x.power(n, align) for (x,align) in scumroles]) + (neutralpower / 2)
-        print("scumpower",scumpower,[mafl.role.getname(x) for x,_ in scumroles])
+        print("scumpower",scumpower,[x.getname() for x,_ in scumroles])
 
         avgscumpower = scumpower / len(scumroles)
 
@@ -112,31 +114,27 @@ class Setup:
             if townpower > scumpower:
                 if self.rng.random() > bastardly:
                     r = self.rng.choice(basicroles)
-                    print("too much town power, picking basic role",mafl.role.getname(r))
+                    print("too much town power, picking basic role",r.getname())
                 else:
                     r = self.rng.choice(badroles)
                     if (r,town) in townroles:
-                        print("repick",mafl.role.getname(r))
+                        print("repick",r.getname())
                         r = self.rng.choice(badroles)
-                    print("too much town power, picking bad role",mafl.role.getname(r))
+                    print("too much town power, picking bad role",r.getname())
             else:
                 if normalroles:
                     r = self.rng.choice(normalroles)
                     if (r,town) in townroles:
-                        print("repick",mafl.role.getname(r))
+                        print("repick",r.getname())
                         r = self.rng.choice(normalroles)
-                    print("picking normal role",mafl.role.getname(r))
+                    print("picking normal role",r.getname())
                 else:
                     r = self.rng.choice(basicroles)
-                    print("no normal roles, picking basic role",mafl.role.getname(r))
+                    print("no normal roles, picking basic role",r.getname())
             townroles.append((r, town))
             townpower = sum([x.power(n, mafl.faction.Town) for x,_ in townroles])
 
-        setup = townroles + scumroles + neutralroles
-        for p, (r,f) in zip(self.players, setup):
-            p.setrole(r, f)
-            print("calling setrole for",p.name)
+        print("townpower",townpower,[x.getname() for x,_ in townroles])
 
-        print("townpower",townpower,[mafl.role.getname(x) for x,_ in townroles])
-
+        self.roles = townroles + scumroles + neutralroles
         return True

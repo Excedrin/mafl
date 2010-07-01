@@ -136,7 +136,11 @@ class Kill(Action):
 
     def resolve(self, state):
         for slot in self.targets:
-            player = state.playerbyslotbus(slot)
+            nobus = self.args.get('nobus', False)
+            if nobus:
+                player = state.playerbyslot(slot)
+            else:
+                player = state.playerbyslotbus(slot)
             if player.living:
                 player.living = False
                 print("kill resolved (%s killed by %s)" % (player.name, self.actor))

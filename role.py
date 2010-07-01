@@ -7,9 +7,6 @@ from misc import *
 
 import random
 
-def getname(x):
-    return getattr(x, 'truename', x.name)
-
 class RoleBase:
     basic = False
     name = "baserole"
@@ -17,6 +14,9 @@ class RoleBase:
     abilities = []
     def power(n, align):
         return 0
+    @classmethod
+    def getname(cls):
+        return getattr(cls, 'truename', cls.name)
 
 class Townie(RoleBase):
     basic = True
@@ -50,7 +50,7 @@ class CultLeader(RoleBase):
     abilities = Townie.abilities + \
         [Ability(Recruit, args={'role':Cultist}),
          Ability(Reflex, Any, auto=True, nosteal=True, resolvers=[Ability.Self()],
-            args={'action':Suicide(0, [], args={'how':'drank the Kool-Aid'}),
+            args={'action':Suicide(0, [], args={'how':'drank the Kool-Aid','nobus':True}),
                   'resolvers':[Ability.AllTeam()],
                   'triggers':[Lynch, Kill, SuperKill, PoisonKill]} )]
     def power(n, align):
@@ -94,7 +94,7 @@ class CrazedFiend(RoleBase):
     abilities = Townie.abilities + [Ability(Kill, Any, uses=Some(1))]
     def power(n, align):
         if align is Sk:
-            return min((4/3) - (n/9), 0.3)
+            return max((4/3) - (n/9), 0.3)
         return 0.7
 
 class GraveVigilante(RoleBase):
@@ -195,19 +195,19 @@ class DoubleVoter(RoleBase):
     name = "Double Voter"
     abilities = Townie.abilities + [Ability(Vote, Day, free=True, public=True, optargs=True, args={'maxvotes':2} )]
     def power(n, align):
-        return min(1.8 - 0.1 * n, 0.3)
+        return max(1.8 - 0.1 * n, 0.3)
 
 class NonVoter(RoleBase):
     factions = [Town]
     name = "Nonvoter"
     abilities = Townie.abilities + [Ability(Vote, Day, free=True, public=True, optargs=True, args={'maxvotes':0} )]
     def power(n, align):
-        return max(0.1 * n - 1.3, 0)
+        return min(0.1 * n - 1.3, 0)
 
 class ParanoidGunOwner(RoleBase):
     factions = [Town, Survivor]
     name = "Paranoid Gun Owner"
-    abilities = Townie.abilities + [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()], args={'action':Kill(0, [])} )]
+    abilities = Townie.abilities + [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()], args={'action':Kill(0, [], args={'nobus':True})} )]
     def power(n, align):
         return 0.75
 
@@ -371,14 +371,14 @@ class EliteBodyguard(RoleBase):
     name = "Elite Bodyguard"
     abilities = Townie.abilities + [Ability(Guard, args={'guard':Guard.Other})]
     def power(n, align):
-        return min(0.98 - 0.06 * n, 0.2)
+        return max(0.98 - 0.06 * n, 0.2)
 
 class Friend(RoleBase):
     factions = [Town, Survivor]
     name = "Friendly Neighbor"
     abilities = Townie.abilities + [Ability(Friend, Day)]
     def power(n, align):
-        return min(0.6 - 0.033333 * n, 0.2)
+        return max(0.6 - 0.033333 * n, 0.2)
 
 class Joat(RoleBase):
     factions = [Town]
@@ -387,7 +387,7 @@ class Joat(RoleBase):
                 Ability(Inspect, uses=Some(1)), Ability(Protect, uses=Some(1)),
                 Ability(Block, uses=Some(1))]
     def power(n, align):
-        return min(0.7 - 0.033333 * n, 0.2)
+        return max(0.8 - 0.033333 * n, 0.2)
 
 class Stalker(RoleBase):
     factions = [Town]
@@ -399,7 +399,7 @@ class Stalker(RoleBase):
 class Skulker(RoleBase):
     factions = [Town, Survivor]
     name = "Skulker"
-    abilities = Townie.abilities + [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()], args={'action':Suicide(0, [])} )]
+    abilities = Townie.abilities + [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()], args={'action':Suicide(0, [], args={'nobus':True})} )]
     def power(n, align):
         return -0.2
 
@@ -408,7 +408,7 @@ class SuperSaint(RoleBase):
     name = "Super-Saint"
     abilities = Townie.abilities + \
         [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()],
-            args={'action':Kill(0, [], args={'how':'was killed by an angry mob'}),
+            args={'action':Kill(0, [], args={'how':'was killed by an angry mob','nobus':True}),
                   'triggers':[Lynch]} )]
     def power(n, align):
         return 0.3
@@ -418,7 +418,7 @@ class Bomb(RoleBase):
     name = "Bomb"
     abilities = Townie.abilities + \
         [Ability(Reflex, Any, auto=True, resolvers=[Ability.Self()],
-            args={'action':Kill(0, [], args={'how':'was killed by an explosion'}),
+            args={'action':Kill(0, [], args={'how':'was killed by an explosion','nobus':True}),
                   'triggers':[Lynch, Kill, SuperKill]} )]
     def power(n, align):
         return 0.6
@@ -437,7 +437,7 @@ class Copycat(RoleBase):
     abilities = Townie.abilities + \
         [Ability(Copy)]
     def power(n, align):
-        return 0.35
+        return 0.6
 
 class Disabler(RoleBase):
     factions = [Town, Mafia]
@@ -497,13 +497,17 @@ class AntiDoctor(RoleBase):
 
 class Tmpl:
     def __init__(self, role):
-        self.__class__ = RoleBase
-        self.abilities = copy.deepcopy(role.abilities)
+        self.basic = role.basic
+        self.name = role.getname()
         self.factions = role.factions
-        self.name = role.name
+        self.abilities = copy.deepcopy(role.abilities)
+
         self.role = role
 
         self.power = lambda n,align: role.power(n, align)
+
+    def getname(self):
+        return getattr(self, 'truename', self.name)
 
 class TmplDay(Tmpl):
     def __init__(self, role):
@@ -516,7 +520,7 @@ class TmplDay(Tmpl):
 
         self.power = lambda n,align: role.power(n, align) + 0.2
 
-class TmplOneShot:
+class TmplOneShot(Tmpl):
     def __init__(self, role):
         Tmpl.__init__(self, role)
 
@@ -527,7 +531,7 @@ class TmplOneShot:
         self.name = "One-Shot "+role.name
         self.power = lambda n,align: max(role.power(n, align) - min(0.033333 * n - 0.1, 0.2), 0.1)
     
-class TmplIncompetent:
+class TmplIncompetent(Tmpl):
     def __init__(self, role):
         Tmpl.__init__(self, role)
 
@@ -535,11 +539,11 @@ class TmplIncompetent:
             if not abi.free:
                 abi.resolvers=[Ability.RandomSecret()]
 
-        self.truename = "Incompetent "+getname(role)
+        self.truename = "Incompetent " + role.getname()
 
         self.power = lambda n,align: max(role.power(n, align) - 0.3, 0)
 
-class TmplConfused:
+class TmplConfused(Tmpl):
     def __init__(self, role):
         Tmpl.__init__(self, role)
 
@@ -550,11 +554,11 @@ class TmplConfused:
             for (conf, abi) in zip(confabi, abis):
                 abi.name = conf
 
-            self.truename = "Confused "+getname(role)
+            self.truename = "Confused "+role.getname()
 
             self.power = lambda n,align: max(role.power(n, align) - 0.3, 0)
 
-class TmplFail:
+class TmplFail(Tmpl):
     def __init__(self, role, fail):
         Tmpl.__init__(self, role)
         self.fail = fail
@@ -563,11 +567,11 @@ class TmplFail:
             if not abi.free:
                 abi.failure = fail
 
-        self.truename = "%d%% %s"%(fail * 100, getname(role))
+        self.truename = "%d%% %s"%(fail * 100, role.getname())
 
         self.power = lambda n,align: max(role.power(n, align) * self.fail, 0)
 
-class TmplSanity:
+class TmplSanity(Tmpl):
     def __init__(self, role, sanity):
         Tmpl.__init__(self, role)
 
@@ -577,9 +581,9 @@ class TmplSanity:
         self.name = role.name
 
         if sanity.name:
-            self.truename = sanity.name + " " + getname(role)
+            self.truename = sanity.name + " " + role.getname()
         else:
-            self.truename = getname(role)
+            self.truename = role.getname()
 
         self.power = lambda n,align: max(role.power(n, align) - (0.1 if sanity.useful else 0.3), 0)
 
@@ -633,7 +637,7 @@ def init():
             (type(t[1]) is type
             and not t[1] is RoleBase
             and issubclass(t[1], RoleBase))
-            or (isinstance(t[1], RoleBase)),
+            or (isinstance(t[1], Tmpl)),
                 env.items())):
         env['roles'][k] = v
 
@@ -645,4 +649,4 @@ init()
 
 def printroles():
     for k,v in faction.items():
-        print(k.name, len(v), [getname(x) for x in v])
+        print(k.name, len(v), [x.getname() for x in v])
