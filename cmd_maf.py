@@ -27,6 +27,12 @@ def tick(bot):
         rungame(bot, True, None, None, state)
     bot.store('maf', state)
 
+def nickchange(bot, before, after):
+    state = bot.get('maf')
+    if state:
+        state.replace(before, after, True)
+    bot.store('maf', state)
+
 def run(bot, command, to, who, args):
     if not command:
         return

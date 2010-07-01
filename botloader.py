@@ -7,6 +7,9 @@ import bot
 
 from configparser import SafeConfigParser
 
+import sys
+sys.stderr = sys.stdout
+
 ####
 ####
 ####

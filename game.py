@@ -266,16 +266,19 @@ class Game:
             if self.timers.expired('randomize'):
                 self.nextphase()
 
-        for p in self.living():
-            remaining = self.timers.remaining('%' + p.name.lower())
-            if remaining and remaining.v in (23,5):
-                self.message(p.name, "modkill in %d seconds"%remaining.v)
-                self.timers.dec('%' + p.name.lower())
-            if remaining and remaining.v <= 0:
-                target = self.slotbyname(p.name)
+        if self.phase.started:
+            for p in self.living():
+                self.timers.setfirst('%' + p.name.lower(), 307)
+                remaining = self.timers.remaining('%' + p.name.lower())
+ 
+                if remaining and remaining.v in (23,5):
+                    self.message(p.name, "modkill in %d seconds"%remaining.v)
+                    self.timers.dec('%' + p.name.lower())
+                if remaining and remaining.v <= 0:
+                    target = self.slotbyname(p.name)
 
-                self.enqueue(mafl.actions.Disable(0, [target]))
-                self.enqueue(mafl.actions.SuperKill(0, [target], args={'how':'died of boredom'}))
+                    self.enqueue(mafl.actions.Disable(0, [target]))
+                    self.enqueue(mafl.actions.SuperKill(0, [target], args={'how':'died of boredom'}))
 
     def phasemsg(self, who=None):
         self.message(who, self.phase.name)
@@ -364,16 +367,17 @@ class Game:
                 self.timers = timers.Timers()
 
             if self.phase == mafl.phase.Signups:
-                self.setup = mafl.setup.Setup(self.rng, self.realplayers())
-                if self.setup.setroles():
+                pl = self.realplayers()
+                self.setup = mafl.setup.Setup(self.rng)
+           
+                if self.setup.getroles(len(pl)):
+                    self.setup.setroles(pl)
                     print("sending roles")
                     # send role pms
                     for name, slot in self.slot.items():
                         player = self.playerbyslot(slot)
                         if not player.virtual:
                             self.message(name, player.fullrolepm(self))
-                        # auto modkill timer
-                        self.timers.settimer('%' + name.lower(), 307)
                 else:
                     self.message(None, "Failed to assign roles, canceled game")
                     self.nextphase(mafl.phase.Done)
@@ -432,11 +436,12 @@ class Game:
 
             self.message(None, "Vote count: %d to lynch"%(self.majority()+1))
             for k,v in self.votes.items():
-                voters = [self.playerbyslot(x).name for x in self.votes[k]]
+                print("votecount:",k,v)
+                voters = [self.playerbyslot(x).name for x in v]
                 wagon = "%s (%d) - %s" % (self.playerbyslot(k).name, len(voters), ', '.join(voters))
                 self.message(None, wagon)
 
-    def replace(self, p1, p2):
+    def replace(self, p1, p2, quiet=False):
         if p1 == p2:
             return
 
@@ -456,11 +461,14 @@ class Game:
                 self.fake[p2] = self.fake[p1]
             self.timers.remove('%'+p1.lower())
             self.timers.settimer('%'+p2.lower(), 307)
-            self.message(None, "replaced %s with %s"%(p1,p2))
+            res = "replaced %s with %s"%(p1,p2)
         elif slot2:
-            self.message(None, "player %s is already playing"%p2)
+            res = "player %s is already playing"%p2
         else:
-            self.message(None, "player %s doesn't exist"%p1)
+            res =  "player %s doesn't exist"%p1
+
+        if not quiet:
+            self.message(None, res)
 
     def setrole(self, who, args):
         align = "town"
@@ -584,15 +592,14 @@ class Game:
             n = int(args[0])
             print("testsetup for ",n)
 
-            fakeplayers = [mafl.Player(x) for x in range(n)]
-            self.setup = mafl.setup.Setup(self.rng, fakeplayers)
-            if self.setup.setroles():
+            self.setup = mafl.setup.Setup(self.rng)
+            if self.setup.getroles(n):
                 byfac = {}
-                for p in fakeplayers:
-                    if str(p.faction) in byfac:
-                        byfac[str(p.faction)].append(p.truename)
+                for r,f in self.setup.roles:
+                    if str(f.name) in byfac:
+                        byfac[str(f.name)].append(r.getname())
                     else:
-                        byfac[str(p.faction)] = [p.truename]
+                        byfac[str(f.name)] = [r.getname()]
                 msg = []
                 for k,v in byfac.items():
                     msg.append("%s: %s" %(k, ", ".join(v)))
@@ -629,4 +636,4 @@ class Game:
             r = mafl.role.roles.get(rolename, None)
             if r and faction:
                 power = r.power(n, faction)
-                self.message(who, "%s %0.2f" %(mafl.role.getname(r), power))
+                self.message(who, "%s %0.2f" %(r.getname(), power))

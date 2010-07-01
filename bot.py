@@ -10,7 +10,11 @@ import cmd_version
 import cmd_time
 import cmd_maf
 
+import re
+
 import random
+
+sep = re.compile(r'\r\n|\r|\n')
 
 def clean(str):
     return str[1:]
@@ -19,47 +23,7 @@ def nick(str):
     parts = str[1:].split('!')
     return parts[0]
 
-# this is horrible and I don't care ;_;
-def colorlen(s):
-    if s[0].isdigit() and s[1].isdigit() and s[2] == "," and s[3].isdigit() and s[4].isdigit():
-        return 5
-    if s[0].isdigit() and s[1].isdigit() and s[2] == "," and s[3].isdigit():
-        return 4
-    if s[0].isdigit() and s[1].isdigit() and s[2] == ",":
-        return 2
-
-    if s[0].isdigit() and s[1].isdigit():
-        return 2
-
-    if s[0].isdigit() and s[1] == "," and s[2].isdigit() and s[3].isdigit():
-        return 4
-    if s[0].isdigit() and s[1] == "," and s[2].isdigit():
-        return 3
-
-    if s[0] == "," and s[1].isdigit() and s[2].isdigit():
-        return 3
-    if s[0] == "," and s[1].isdigit():
-        return 2
-    if s[0].isdigit():
-        return 1
-    return 0
-
-def stripcolors(s):
-    r = ""
-    i = 0
-    while i < len(s):
-        if ord(s[i]) == 3:
-            if i+1 < len(s):
-                z = s[i+1:]
-                z += "......"
-                codelen = colorlen(z)
-                i += 1 + codelen
-            else:
-                i += 1
-        else:
-            r += s[i]
-            i += 1
-    return r
+color = re.compile(r'[\x02\x1f\x16\x0f]|\x03\d{0,2}(?:,\d{0,2})?')
 
 MAXSEND = 1000
 MAXCMDS = 6
@@ -102,19 +66,33 @@ class Bot():
 
         self.setupcmds()
 
+        self.viadcc = {}
+        self.fdmap = {}
+        self.p = None
+
     def setupcmds(self):
         self.commands = [cmd_raw, cmd_version, cmd_time, cmd_maf]
 
     def send(self, msg):
-        msg = bytes(msg.encode('utf8')) + b"\r\n"
-        self.sent += len(msg)
-        self.s.send(msg)
+        bmsg = bytes(msg.encode('utf8')) + b"\r\n"
+        self.sent += len(bmsg)
+        self.s.send(bmsg)
 
     def notice(self, to, msg):
-        self.send("NOTICE %s :%s" %(to, msg))
+        if not self.dcchack(to,msg):
+            self.send("NOTICE %s :%s" %(to, msg))
 
     def privmsg(self, to, msg):
-        self.send("PRIVMSG %s :%s" %(to, msg))
+        if not self.dcchack(to,msg):
+            self.send("PRIVMSG %s :%s" %(to, msg))
+
+    def dcchack(self, to, msg):
+        tl = to.lower()
+        res = tl in self.viadcc
+        if res:
+            bmsg = bytes(msg.encode('utf8')) + b"\r\n"
+            self.viadcc[to.lower()].send(bmsg)
+        return res
 
     def reply(self, to, who, msg):
         if to and to[0] == '#':
@@ -135,6 +113,25 @@ class Bot():
             self.send('NICK %s' %self.nick)
             self.send('USER %s %s %s :%s' %(self.user,self.user,self.user,self.realname))
             print("connected")
+
+    def parsectcp(self, who, dat, rest):
+        print("ctcp: %s %s %s" %(who, dat,rest))
+#ctcp: DCC ['CHAT', 'CHAT', '2130706433', '56772']
+        if dat == 'DCC' and len(rest) == 4 and rest[0] == 'CHAT':
+            ipint = int(rest[2])
+            port = int(rest[3])
+            ipstr = "%d.%d.%d.%d" %(ipint >> 24  & 0xFF, ipint >> 16  & 0xFF,
+                    ipint >> 8 & 0xFF, ipint & 0xFF)
+            print("ctcp chat req %s %s %d"%(who, ipstr, port))
+            newsock = socket.socket()
+            try:
+                newsock.connect((ipstr, port))
+                self.viadcc[nick(who).lower()] = newsock
+                self.fdmap[newsock.fileno()] = (who, newsock)
+                self.p.register(newsock, select.POLLIN)
+                print("connected")
+            except socket.error as message:
+                print("dcc chat error",message)
 
     def parse(self, line):
         fields = line.split(" ")
@@ -162,10 +159,42 @@ class Bot():
                 self.joined = True
             if fields[1] == 'KICK':
                 self.joined = False
+
+            # nickchange [':Excedrin!Excedrin@h-2033CAFE', 'NICK', ':foo']
+            if fields[1] == 'NICK':
+                print(fields)
+                (oldnick, userhost) = fields[0][1:].split('!')
+                newwho = ':' + fields[2] + userhost
+                newnick = fields[2][1:]
+
+                if nick(fields[0]) in self.viadcc:
+                    dccsock = self.viadcc[oldnick]
+                    self.fdmap[dccsock.fileno()] = (newwho, dccsock)
+                    self.viadcc[newnick] = dccsock
+                    del self.viadcc[oldnick]
+
+                for cmd in self.commands:
+                    if hasattr(cmd,'nickchange'):
+                        try:
+                            cmd.nickchange(self, oldnick, newnick)
+                        except Exception as e:
+                            print("exception nickchanging cmd: %s\n%s\n" %(cmd, e))
+                            traceback.print_exc()
+
             if fields[1] == 'PRIVMSG' or fields[1] == 'NOTICE':
-                msg = clean(" ".join(fields[3:]))
                 who = nick(fields[0])
-                print("<%s> %s" %(who, msg))
+
+                if fields[3].startswith(':\x01'):
+                    # got ctcp
+                    print("ctcp fields",fields)
+                    ctcp = fields[3][2:]
+                    rest = fields[4:]
+                    rest[-1] = rest[-1][0:-1]
+                    self.parsectcp(fields[0], ctcp, rest)
+                    return
+                else:
+                    msg = clean(" ".join(fields[3:]))
+                    print("<%s> %s" %(who, msg))
 
                 if msg == "%reload":
                     print("got reload")
@@ -224,29 +253,38 @@ class Bot():
                 print("exception running cmd tick: %s\n%s\n" %(cmd, e))
                 traceback.print_exc()
 
+        sys.stdout.flush()
+
     def run(self):
         self.reload = False
         self.exit = False
 
         self.connect()
-        p = select.poll()
-        p.register(self.s, select.POLLIN)
 
-        fdmap = {}
-        fdmap[self.s.fileno()] = self.s
+        self.p = select.poll()
+        self.p.register(self.s, select.POLLIN)
+
+        self.fdmap = {}
+        self.fdmap[self.s.fileno()] = (None, self.s)
 
         while not self.exit and not self.reload:
-            for fd,event in p.poll(1000):
+            for fd,event in self.p.poll(1000):
                 self.ratelimit()
-                if event & select.POLLIN and fd in fdmap:
-                    sock = fdmap[fd]
+                if event & select.POLLIN and fd in self.fdmap:
+                    (dcc, sock) = self.fdmap[fd]
                     buf = sock.recv(4096).decode('utf8')
                     self.recvd += len(buf)
-                    lines = buf.split("\r\n")
+                    lines = sep.split(buf)
                     for line in lines:
                         if line:
-                            self.parse(stripcolors(line))
+#                            dump=" ".join(["%02x"%ord(x) for x in line])
+#                            print("dump",dump)
+                            if dcc:
+                                line = dcc+" PRIVMSG "+self.nick+" :"+line
+#                                print("hax dcc line",line)
+                            self.parse(color.sub("",line))
                     sys.stdout.flush()
+
             else: # poll timeout
                 self.tick()
 
