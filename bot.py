@@ -176,6 +176,7 @@ class Bot():
             except socket.error as message:
                 print("exception on dcc socket",message)
                 self.removeuser(to)
+                self.closesock(sock)
         return False
 
     def reply(self, to, who, msg):
@@ -372,6 +373,7 @@ class Bot():
                         newsock = sock.pollin()
                         if newsock:
                             self.addsock(newsock)
+                            self.closesock(sock)
                         else:
                             buf = sock.recv(4096).decode('utf8')
                             self.recvd += len(buf)
