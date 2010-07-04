@@ -28,7 +28,7 @@ class Setup:
 
         print("setup n:",n)
 
-        nscum = round(n * (1/4.5))
+        nscum = int(round(n * (1/4.5)))
         neutrals = []
 
         r = self.rng.random()

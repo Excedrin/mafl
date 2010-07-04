@@ -16,14 +16,75 @@ import random
 
 sep = re.compile(r'\r\n|\r|\n')
 
-def clean(str):
-    return str[1:]
+def clean(s):
+    return s[1:]
 
-def nick(str):
-    parts = str[1:].split('!')
+def nick(s):
+    parts = s[1:].split('!')
     return parts[0]
 
 color = re.compile(r'[\x02\x1f\x16\x0f]|\x03\d{0,2}(?:,\d{0,2})?')
+
+class Sock:
+    def __init__(self, host, port):
+        self.s = socket.socket()
+        self.host = host
+        self.port = port
+        self.who = None
+        self.nick = None
+
+    def pollin(self):
+        return None 
+    def mangle(self, line):
+        return line
+    def recv(self, size):
+        return self.s.recv(size)
+    def send(self, msg):
+        return self.s.send(bytes(msg.encode('utf8')))
+    def fileno(self):
+        return self.s.fileno()
+    def close(self):
+        return self.s.close()
+
+    def nickchange(self, oldnick, newnick):
+        pass
+
+class Server(Sock):
+    def connect(self, nick, user, realname):
+        self.s.connect((self.host, self.port))
+        self.send('NICK %s' % nick)
+        self.send('USER %s %s %s :%s' %(user, user, user, realname))
+    def send(self, msg):
+        Sock.send(self, msg + "\r\n")
+
+class DCC(Server):
+    def __init__(self, host, port, who, nick):
+        Sock.__init__(self, host, port)
+        self.who = who
+        self.nick = nick
+    def connect(self):
+        self.s.connect((self.host, self.port))
+    def mangle(self, line):
+        mng = self.who+" PRIVMSG "+self.nick+" :"+line
+        print("mangled",mng)
+        return mng
+    def nickchange(self, oldnick, newnick):
+        userhost = self.who.split('!')[1]
+        self.who = ':' + newnick + "!" + userhost
+
+class DCCListen(DCC):
+    def connect(self):
+        self.s.bind((self.host, self.port))
+        self.s.listen(2)
+
+    def pollin(self):
+        print("calling accept")
+        (newsock, remote) = self.s.accept()
+        print("connected to",remote)
+
+        newdcc = DCC(self.host, self.port, self.who, self.nick)
+        newdcc.s = newsock
+        return newdcc
 
 MAXSEND = 1000
 MAXCMDS = 6
@@ -31,8 +92,7 @@ class Bot():
     def __init__(self, cfg):
         self.cfg = cfg
 
-        self.s = socket.socket()
-        self.connected = False
+        self.p = select.poll()
 
         self.server = cfg['server']
         self.port = int(cfg['port'])
@@ -66,21 +126,37 @@ class Bot():
 
         self.setupcmds()
 
-        self.viadcc = {}
         self.fdmap = {}
-        self.p = None
+        self.sockmap = {}
+
+    def adduser(self, sock):
+        print("adduser",nick(sock.who).lower())
+        self.sockmap[nick(sock.who).lower()] = sock
+
+    def finduser(self, nick):
+        return self.sockmap.get(nick.lower(), self.s)
+
+    def removeuser(self, nick):
+        print("removeuser:",nick)
+        del self.sockmap[nick.lower()]
+
+    def nickchange(self, oldnick, newnick):
+        sock = self.finduser(oldnick)
+        if sock.who:
+            print("nickchange:",oldnick,newnick)
+            sock.nickchange(oldnick, newnick)
+            self.adduser(sock)
+            self.removeuser(oldnick)
 
     def setupcmds(self):
         self.commands = [cmd_raw, cmd_version, cmd_time, cmd_maf]
 
     def send(self, msg):
-        bmsg = bytes(msg.encode('utf8')) + b"\r\n"
-        self.sent += len(bmsg)
+        self.sent += len(msg)
         try:
-            self.s.send(bmsg)
+            self.s.send(msg)
         except socket.error as message:
-            print("exception sending to server socket",message)
-
+            print("exception sending to server socket", message)
 
     def notice(self, to, msg):
         if not self.dcchack(to,msg):
@@ -91,21 +167,16 @@ class Bot():
             self.send("PRIVMSG %s :%s" %(to, msg))
 
     def dcchack(self, to, msg):
-        tl = to.lower()
-        res = tl in self.viadcc
-        if res:
-            bmsg = bytes(msg.encode('utf8')) + b"\r\n"
+        sock = self.finduser(to)
+        print("dcchack",to," found", sock)
+        if sock.who:
             try:
-                self.viadcc[tl].send(bmsg)
+                sock.send(msg)
+                return True
             except socket.error as message:
                 print("exception on dcc socket",message)
-                dccsock = self.viadcc[tl]
-                self.p.unregister(dccsock)
-                del self.viadcc[tl]
-                del self.fdmap[dccsock.fileno()]
-                dccsock.close()
-
-        return res
+                self.removeuser(to)
+        return False
 
     def reply(self, to, who, msg):
         if to and to[0] == '#':
@@ -119,31 +190,11 @@ class Bot():
     def store(self, key, value):
         self.state[key] = value
     
-    def connect(self):
-        if not self.connected:
-            self.connected = True
-            self.s.connect((self.server, self.port))
-            self.send('NICK %s' %self.nick)
-            self.send('USER %s %s %s :%s' %(self.user,self.user,self.user,self.realname))
-            print("connected")
-
     def ipstr(self, ipstr):
         res = 0
         for o,n in zip(ipstr.split('.'), range(4)):
             res += int(o) << ((3-n) * 8)
         return res
-
-    def listendcc(self, who, port):
-        print("listen on port %d for %s"%(port, who))
-        s = socket.socket()
-        s.bind(('0.0.0.0', port))
-        s.listen(2)
-        (newsock, remote) = s.accept()
-        self.viadcc[nick(who).lower()] = newsock
-        self.fdmap[newsock.fileno()] = (who, newsock)
-        self.p.register(newsock, select.POLLIN | select.POLLERR | select.POLLHUP)
-        print("connected to",remote)
-        s.close()
 
     def parsectcp(self, who, dat, rest):
         print("ctcp: %s %s %s" %(who, dat,rest))
@@ -151,21 +202,18 @@ class Bot():
         if dat == 'DCC' and len(rest) == 4 and rest[0] == 'CHAT':
             ipint = int(rest[2])
             port = int(rest[3])
-            ipstr = "%d.%d.%d.%d" %(ipint >> 24  & 0xFF, ipint >> 16  & 0xFF,
+            ipstr = "%d.%d.%d.%d" %(ipint >> 24 & 0xFF, ipint >> 16 & 0xFF,
                     ipint >> 8 & 0xFF, ipint & 0xFF)
             print("ctcp chat req %s %s %d"%(who, ipstr, port))
-            newsock = socket.socket()
-            try:
-                newsock.connect((ipstr, port))
-                self.viadcc[nick(who).lower()] = newsock
-                self.fdmap[newsock.fileno()] = (who, newsock)
-                self.p.register(newsock, select.POLLIN | select.POLLERR | select.POLLHUP)
-                print("connected")
-            except socket.error as message:
-                print("dcc chat error",message)
+
+            sock = DCC(ipstr, port, who, self.nick)
+            sock.connect()
+            self.addsock(sock)            
 
     def parse(self, line):
-        fields = line.split(" ")
+        fields = list(filter(None, line.split(" ")))
+        if not fields:
+            return
 #        print(fields)
         if not self.servernick:
             self.servernick = fields[0]
@@ -194,15 +242,9 @@ class Bot():
             # nickchange [':Excedrin!Excedrin@h-2033CAFE', 'NICK', ':foo']
             if fields[1] == 'NICK':
                 print(fields)
-                (oldnick, userhost) = fields[0][1:].split('!')
-                newwho = ':' + fields[2] + userhost
-                newnick = fields[2][1:]
-
-                if nick(fields[0]) in self.viadcc:
-                    dccsock = self.viadcc[oldnick]
-                    self.fdmap[dccsock.fileno()] = (newwho, dccsock)
-                    self.viadcc[newnick] = dccsock
-                    del self.viadcc[oldnick]
+                oldnick = nick(fields[0])
+                newnick = nick(fields[2])
+                self.nickchange(oldnick, newnick)
 
                 for cmd in self.commands:
                     if hasattr(cmd,'nickchange'):
@@ -243,11 +285,11 @@ class Bot():
 #                if fields[2] == self.nick and msg == "%quit":
                     self.exit = True
                     return
-                noemptyargs = list(filter(lambda x: x, fields[4:]))
+#                noemptyargs = list(filter(None, fields[4:]))
 
                 for cmd in self.commands:
                     try:
-                        cmd.run(self, clean(fields[3]), fields[2], who, noemptyargs)
+                        cmd.run(self, clean(fields[3]), fields[2], who, fields[4:])
                     except Exception as e:
                         print("exception running cmd: %s\n%s\n" %(cmd, e))
                         traceback.print_exc()
@@ -278,13 +320,14 @@ class Bot():
 
     def tick(self):
         self.ratelimit()
+
         # join hack
         if not self.joined:
             print("join")
             self.send('JOIN :#m')
 
         for cmd in self.commands:
-            tick = getattr(cmd,'tick',lambda _: None)
+            tick = getattr(cmd, 'tick', lambda _: None)
             try:
                 tick(self)
             except Exception as e:
@@ -293,40 +336,63 @@ class Bot():
 
         sys.stdout.flush()
 
+    def addsock(self, s):
+        self.p.register(s, select.POLLIN | select.POLLERR) # | select.POLLHUP)
+        self.fdmap[s.fileno()] = s
+        if s.who:
+            self.adduser(s)
+
+    def closesock(self, sock):
+        self.p.unregister(sock)
+        del self.fdmap[sock.fileno()]
+        sock.close()
+
+    def listendcc(self, who, port):
+        print("listen on port %d for %s"%(port, who))
+
+        sock = DCCListen('0.0.0.0', port, who, self.nick)
+        sock.connect()
+        self.addsock(sock)
+
     def run(self):
         self.reload = False
         self.exit = False
 
-        self.connect()
-
-        self.p = select.poll()
-        self.p.register(self.s, select.POLLIN | select.POLLERR | select.POLLHUP)
-
-        self.fdmap = {}
-        self.fdmap[self.s.fileno()] = (None, self.s)
+        self.s = Server(self.server, self.port)
+        self.s.connect(self.nick, self.user, self.realname)
+        self.addsock(self.s)
 
         while not self.exit and not self.reload:
-            for fd,event in self.p.poll(1000):
+            for fd, event in self.p.poll(1000):
                 if fd in self.fdmap:
                     self.ratelimit()
-                    (dcc, sock) = self.fdmap[fd]
+
+                    sock = self.fdmap[fd]
                     if event & select.POLLIN:
-                        buf = sock.recv(4096).decode('utf8')
-                        self.recvd += len(buf)
-                        lines = sep.split(buf)
-                        for line in lines:
-                            if line:
-                                #dump=" ".join(["%02x"%ord(x) for x in line])
-                                #print("dump",dump)
-                                if dcc:
-                                    line = dcc+" PRIVMSG "+self.nick+" :"+line
-                                    #print("hax dcc line",line)
-                                self.parse(color.sub("",line))
+                        newsock = sock.pollin()
+                        if newsock:
+                            self.addsock(newsock)
+                        else:
+                            buf = sock.recv(4096).decode('utf8')
+                            self.recvd += len(buf)
+                            lines = sep.split(buf)
+
+                            for line in lines:
+                                if line:
+                                    mangled = sock.mangle(line)
+                                    decolored = color.sub("", mangled)
+                                    self.parse(decolored)
+
                         sys.stdout.flush()
-                    elif event & (select.POLLHUP|select.POLLERR):
-                        print("got hup/err on ",fd)
-                        if dcc and nick(dcc) in self.viadcc:
-                            del self.viadcc[nick(dcc)]
+
+                    elif event & select.POLLHUP:
+                        print("got hup on",fd,event)
+                        self.closesock(sock)
+
+                    elif event & select.POLLERR:
+                        print("got err on",fd,event)
+                        self.closesock(sock)
+
                 else:
                     print("fd not in map",fd)
                     
@@ -335,3 +401,6 @@ class Bot():
                 self.tick()
 
         return (self, self.exit)
+
+#dump=" ".join(["%02x"%ord(x) for x in line])
+#print("dump",dump)

@@ -135,3 +135,31 @@ def run(bot, command, to, who, args):
     rungame(bot, public, to, who, state)
 
     bot.store('maf', state)
+
+if __name__ == "__main__":
+    print("who to command args")
+    import sys
+    class TestBot:
+        def __init__(self):
+            self.state = {}
+        def get(self, key):
+            return self.state.get(key)
+        def store(self, key, val):
+            self.state[key] = val
+        def reply(self, to, who, msg):
+            print(msg)
+        def notice(self, who, msg):
+            print(msg)
+        def privmsg(self, who, msg):
+            print(msg)
+    tester = TestBot()
+    while True:
+        line = sys.stdin.readline()
+        if line:
+            line = line[0:-1]
+            fields = line.split(" ")
+            who = fields[0]
+            to = fields[1]
+            command = fields[2]
+            args = fields[3:]
+            run(tester, command, to, who, args)
