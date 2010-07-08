@@ -25,6 +25,9 @@ def nick(s):
 
 color = re.compile(r'[\x02\x1f\x16\x0f]|\x03\d{0,2}(?:,\d{0,2})?')
 
+readmask = select.POLLIN | select.POLLERR | select.POLLHUP
+writemask = select.POLLIN | select.POLLERR | select.POLLHUP | select.POLLOUT
+
 class Sock:
     def __init__(self, host, port):
         self.s = socket.socket()
@@ -33,14 +36,27 @@ class Sock:
         self.who = None
         self.nick = None
 
+        self.queued = []
+
     def pollin(self):
         return None 
     def mangle(self, line):
         return line
     def recv(self, size):
         return self.s.recv(size)
-    def send(self, msg):
-        return self.s.send(bytes(msg.encode('utf8')))
+    def queue(self, msg):
+        self.queued.append(msg)
+    def send(self):
+        sent = 0
+        if self.queued:
+            allmsg = ''.join(self.queued)
+            msgbytes = bytes(allmsg.encode('utf8'))
+            self.queued = []
+            sent = self.s.send(msgbytes)
+            if sent != len(msgbytes):
+                # not really dealing with this now
+                raise ValueError
+        return sent
     def fileno(self):
         return self.s.fileno()
     def close(self):
@@ -52,10 +68,10 @@ class Sock:
 class Server(Sock):
     def connect(self, nick, user, realname):
         self.s.connect((self.host, self.port))
-        self.send('NICK %s' % nick)
-        self.send('USER %s %s %s :%s' %(user, user, user, realname))
-    def send(self, msg):
-        Sock.send(self, msg + "\r\n")
+        self.queue('NICK %s' % nick)
+        self.queue('USER %s %s %s :%s' %(user, user, user, realname))
+    def queue(self, msg):
+        Sock.queue(self, msg + "\r\n")
 
 class DCC(Server):
     def __init__(self, host, port, who, nick):
@@ -153,10 +169,7 @@ class Bot():
 
     def send(self, msg):
         self.sent += len(msg)
-        try:
-            self.s.send(msg)
-        except socket.error as message:
-            print("exception sending to server socket", message)
+        self.s.queue(msg)
 
     def notice(self, to, msg):
         if not self.dcchack(to,msg):
@@ -168,15 +181,10 @@ class Bot():
 
     def dcchack(self, to, msg):
         sock = self.finduser(to)
-        print("dcchack",to," found", sock)
         if sock.who:
-            try:
-                sock.send(msg)
-                return True
-            except socket.error as message:
-                print("exception on dcc socket",message)
-                self.removeuser(to)
-                self.closesock(sock)
+#            print("dcchack found",to) #, sock)
+            sock.queue(msg)
+            return True
         return False
 
     def reply(self, to, who, msg):
@@ -338,7 +346,7 @@ class Bot():
         sys.stdout.flush()
 
     def addsock(self, s):
-        self.p.register(s, select.POLLIN | select.POLLERR) # | select.POLLHUP)
+        self.p.register(s, readmask)
         self.fdmap[s.fileno()] = s
         if s.who:
             self.adduser(s)
@@ -364,7 +372,14 @@ class Bot():
         self.addsock(self.s)
 
         while not self.exit and not self.reload:
-            for fd, event in self.p.poll(1000):
+            for fd, sock in self.fdmap.items():
+                if sock.queued:
+                    self.p.modify(sock, writemask)
+                else:
+                    self.p.modify(sock, readmask)
+
+            events = self.p.poll(1000)
+            for fd, event in events:
                 if fd in self.fdmap:
                     self.ratelimit()
 
@@ -376,30 +391,43 @@ class Bot():
                             self.closesock(sock)
                         else:
                             buf = sock.recv(4096).decode('utf8')
-                            self.recvd += len(buf)
-                            lines = sep.split(buf)
+                            if len(buf):
+                                print("recv'd", len(buf))
+                                self.recvd += len(buf)
+                                lines = sep.split(buf)
 
-                            for line in lines:
-                                if line:
-                                    mangled = sock.mangle(line)
-                                    decolored = color.sub("", mangled)
-                                    self.parse(decolored)
+                                for line in lines:
+                                    if line:
+                                        mangled = sock.mangle(line)
+                                        decolored = color.sub("", mangled)
+                                        self.parse(decolored)
+                            else:
+                                print("disconnected sock",fd,event)
+                                if sock.who:
+                                    self.removeuser(nick(sock.who))
+                                self.closesock(sock)
+                                for msg in sock.queued:
+                                    print("requeue",msg)
+                                    self.privmsg(msg)
 
                         sys.stdout.flush()
 
-                    elif event & select.POLLHUP:
-                        print("got hup on",fd,event)
+                    if event & select.POLLHUP or event & select.POLLERR:
+#                        print("got hup/err on",fd,event)
+                        if sock.who:
+                            self.removeuser(nick(sock.who))
                         self.closesock(sock)
 
-                    elif event & select.POLLERR:
-                        print("got err on",fd,event)
-                        self.closesock(sock)
-
+                    if event & select.POLLOUT:
+#                        print("got pollout on",fd,event)
+                        try:
+                            sock.send()
+                        except socket.error as message:
+                            print("exception sending to socket", message)
                 else:
                     print("fd not in map",fd)
                     
-
-            else: # poll timeout
+            if not events: # poll timeout
                 self.tick()
 
         return (self, self.exit)
