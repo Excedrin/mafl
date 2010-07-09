@@ -495,6 +495,40 @@ class AntiDoctor(RoleBase):
     def power(n, align):
         return 0.4
 
+class Voteblocker(RoleBase):
+    factions = [Town, Mafia]
+    name = "Voteblocker"
+    abilities = Townie.abilities + \
+        [Ability(Voteop)]
+    def power(n, align):
+        if align is Mafia:
+            return max((4/3) - (n/9), 0.3)
+        return 0.4
+
+class Motivator(RoleBase):
+    factions = [Town]
+    name = "Motivator"
+    abilities = Townie.abilities + \
+        [Ability(Voteop, name='motivate', args={'op':Voteop.Add})]
+    def power(n, align):
+        return 0.4
+
+class Votethief(RoleBase):
+    factions = [Town]
+    name = "Vote Thief"
+    abilities = Townie.abilities + \
+        [Ability(Voteop, name='stealvote', args={'op':Voteop.Sub, 'trade':True})]
+    def power(n, align):
+        return 0.4
+
+class Votegiver(RoleBase):
+    factions = [Town]
+    name = "Vote Giver"
+    abilities = Townie.abilities + \
+        [Ability(Voteop, name='givevote', args={'op':Voteop.Add, 'trade':True})]
+    def power(n, align):
+        return 0.4
+
 class Tmpl:
     def __init__(self, role):
         self.basic = role.basic

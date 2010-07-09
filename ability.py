@@ -175,8 +175,9 @@ class Ability:
             slots[0:len(resolved)] = resolved
             resolved.extend(resolver.gettargets(state, actor, target, slots))
 
-        print("resolved",resolved)
-        return resolved
+        ret = list(filter(None, resolved))
+        print("resolved",ret)
+        return ret
 
     def use(self, state, public, player, targets):
         name = self.getname()
@@ -199,7 +200,10 @@ class Ability:
         else:
             actor = state.slotbyplayer(player)
 
-            if not self.optargs:
+            if self.optargs:
+                for x in range(1,10):
+                    self.resolvers.append(self.resolvers[0])
+            else:
                 arity = len(list(filter(lambda x: not x.forced, self.resolvers)))
                 print("arity",arity)
                 if len(targets) != arity:

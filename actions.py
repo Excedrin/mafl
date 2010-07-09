@@ -11,10 +11,12 @@ class ActionBase:
     name = "none"
     priority = 99999999
 
-    untrackable = False
+    notrack = False
     noimmune = False
     notrigger = False
     noblock = False
+    nobus = False
+    noredir = False
 
     def __init__(self, actor, targets, args={}, rename=None):
         self.actor = actor
@@ -48,7 +50,7 @@ class Message(Action):
     name = "message"
     priority = 100
 
-    untrackable = True
+    notrack = True
 
     def resolve(self, state):
         if 'msg' in self.args:
@@ -63,7 +65,7 @@ class PubMessage(Action):
     name = "pubmessage"
     priority = 100
 
-    untrackable = True
+    notrack = True
 
     def resolve(self, state):
         if 'msg' in self.args:
@@ -78,9 +80,11 @@ class Vote(Action):
     name = "vote"
     priority = 5
 
-    untrackable = True
+    notrack = True
     noimmune = True
     notrigger = True
+
+    maxvotes = 1
 
     def resolve(self, state):
         self.used = True
@@ -88,10 +92,73 @@ class Vote(Action):
 
         player = state.playerbyslot(self.actor)
 
-        maxvotes = 1
-        if 'maxvotes' in self.args:
-            maxvotes = self.args['maxvotes']
-        state.vote(self.actor, self.targets[0:maxvotes])
+        state.vote(self.actor, self.targets[0:self.maxvotes])
+
+        return state.queue
+
+class Voteop(Action):
+    class Sub:
+        op = lambda x,y: x - y
+        verb = "lost"
+    class Add:
+        op = lambda x,y: x + y
+        verb = "gained"
+
+    Add.undo = Sub
+    Sub.undo = Add
+
+    # trade makes this either votesteal or votegive
+    trade = False
+
+    name = "voteblock"
+#    name = "motivate"
+    priority = 30
+
+    op = Sub
+
+    phases = 2
+    undo = False
+
+    def resolve(self, state):
+        for slot in self.targets:
+            if self.nobus:
+                player = state.playerbyslot(slot)
+            else:
+                bus = self.args.get('bus', None)
+                player = state.playerbyslotbus(slot, bus)
+
+            for abi in player.allabilities():
+                if issubclass(abi.action, Vote):
+                    maxvotes = abi.args.get('maxvotes', abi.action.maxvotes)
+                    abi.args['maxvotes'] = self.op.op(maxvotes, 1)
+                    self.used = True
+
+                    state.message(player.name, "You've %s a vote"%self.op.verb)
+
+        state.resolved(self)
+
+        if self.used and not self.undo:
+            delayedact = Voteop(0, self.targets,
+                                args={'op':self.op.undo, 'undo':True, 'notrack':True,
+                                    'noimmune':True, 'notrigger':True,
+                                    'noblock':True, 'bus':copy.copy(state.bus) })
+            state.delay(self.phases, delayedact)
+
+            if self.trade:
+                print("found voteop w/trade")
+                actor = state.playerbyslot(self.actor)
+                for abi in actor.allabilities():
+                    if issubclass(abi.action, Vote):
+                        maxvotes = abi.args.get('maxvotes', abi.action.maxvotes)
+                        abi.args['maxvotes'] = self.op.undo.op(maxvotes, 1)
+                        state.message(actor.name, "You've %s a vote"%self.op.undo.verb)
+
+                delayedact = Voteop(0, [self.actor],
+                                    args={'op':self.op, 'undo':True, 'notrack':True,
+                                        'noimmune':True, 'notrigger':True,
+                                        'nobus':True, 'noblock':True,
+                                        'bus':copy.copy(state.bus) })
+                state.delay(self.phases, delayedact)
 
         return state.queue
 
@@ -208,9 +275,14 @@ class Poison(Action):
         self.used = True
         state.resolved(self)
 
-        delayedact = PoisonKill(0, self.targets)
-        state.delay(self.phases, delayedact)
+        bus = self.args.get('bus', None)
+        player = state.playerbyslotbus(slot, bus)
 
+        delayedact = PoisonKill(0, self.targets)
+        state.delay(self.phases, delayedact,
+                                args={'notrack':True, 'noimmune':True,
+                                    'notrigger':True, 'noblock':True,
+                                    'bus':copy.copy(state.bus) })
         return state.queue
 
 class Flip(Action):
@@ -405,7 +477,7 @@ class Block(Action):
 class Eavesdrop(Action):
     name = "eavesdrop"
     priority = 95
-    untrackable = True
+    notrack = True
 
     def resolve(self, state):
         newqueue = Mqueue()
@@ -683,7 +755,7 @@ class Redirect(Action):
             newqueue = Mqueue()
             for act in state.queue:
                 # don't redirect self targeted actions
-                if act.actor == source and act.targets[0] != act.actor:
+                if act.actor == source and not act.noredir and act.targets[0] != act.actor:
                     newact = copy.deepcopy(act)
                     newact.targets[0] = dest
                     #print("newact:",newact)
@@ -705,7 +777,7 @@ class Track(Action):
             bussed = state.bussedslot(target)
             targets = []
             for act in state.queue + state.resqueue:
-                if not act.untrackable and act.actor == bussed:
+                if not act.notrack and act.actor == bussed:
                     targets.extend(act.targets)
 
             if targets:
@@ -728,7 +800,7 @@ class Watch(Track):
             bussed = state.bussedslot(target)
             acted = False
             for act in state.queue + state.resqueue:
-                if not act.untrackable and act.actor == bussed:
+                if not act.notrack and act.actor == bussed:
                     acted = True
                     break
 
@@ -753,7 +825,7 @@ class Patrol(Track):
             actors = []
 
             for act in state.queue + state.resqueue:
-                if not isinstance(act, Patrol) and not act.untrackable and bussed in state.fix(act.targets):
+                if not isinstance(act, Patrol) and not act.notrack and bussed in state.fix(act.targets):
                     actors.append(act.actor)
 
             if actors:

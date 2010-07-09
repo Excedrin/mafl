@@ -108,6 +108,7 @@ class Bot():
     def __init__(self, cfg):
         self.cfg = cfg
 
+        self.s = None
         self.p = select.poll()
 
         self.server = cfg['server']
@@ -182,7 +183,7 @@ class Bot():
     def dcchack(self, to, msg):
         sock = self.finduser(to)
         if sock.who:
-#            print("dcchack found",to) #, sock)
+            #print("dcchack found",to) #, sock)
             sock.queue(msg)
             return True
         return False
@@ -223,12 +224,12 @@ class Bot():
         fields = list(filter(None, line.split(" ")))
         if not fields:
             return
-#        print(fields)
+        #print(fields)
         if not self.servernick:
             self.servernick = fields[0]
         if fields[0] == 'PING':
             msg = 'PONG ' + " ".join(fields[1:])
-#            print('replying: ' + msg)
+            #print('replying: ' + msg)
             self.send(msg)
         else:
             if fields[0] != self.servernick:
@@ -287,11 +288,11 @@ class Bot():
                     return
                 if msg == "%reload":
                     print("got reload")
-#                if fields[2] == self.nick and msg == "%reload":
+                #if fields[2] == self.nick and msg == "%reload":
                     self.reload = True
                     return
                 if msg == ("%quit " + self.cfg['quitpass']):
-#                if fields[2] == self.nick and msg == "%quit":
+                #if fields[2] == self.nick and msg == "%quit":
                     self.exit = True
                     return
 #                noemptyargs = list(filter(None, fields[4:]))
@@ -367,9 +368,10 @@ class Bot():
         self.reload = False
         self.exit = False
 
-        self.s = Server(self.server, self.port)
-        self.s.connect(self.nick, self.user, self.realname)
-        self.addsock(self.s)
+        if not self.s:
+            self.s = Server(self.server, self.port)
+            self.s.connect(self.nick, self.user, self.realname)
+            self.addsock(self.s)
 
         while not self.exit and not self.reload:
             for fd, sock in self.fdmap.items():
@@ -392,7 +394,7 @@ class Bot():
                         else:
                             buf = sock.recv(4096).decode('utf8')
                             if len(buf):
-                                print("recv'd", len(buf))
+                                #print("recv'd", len(buf))
                                 self.recvd += len(buf)
                                 lines = sep.split(buf)
 
@@ -413,13 +415,13 @@ class Bot():
                         sys.stdout.flush()
 
                     if event & select.POLLHUP or event & select.POLLERR:
-#                        print("got hup/err on",fd,event)
+                        #print("got hup/err on",fd,event)
                         if sock.who:
                             self.removeuser(nick(sock.who))
                         self.closesock(sock)
 
                     if event & select.POLLOUT:
-#                        print("got pollout on",fd,event)
+                        #print("got pollout on",fd,event)
                         try:
                             sock.send()
                         except socket.error as message:

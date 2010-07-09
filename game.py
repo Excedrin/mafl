@@ -53,13 +53,16 @@ class Game:
     def playerbyslot(self, slot):
         return self.players[slot]
 
-    def bussedslot(self, slot):
-        zuh = self.bus.get(slot, [slot])
+    def bussedslot(self, slot, bus=None):
+        if bus:
+            zuh = bus.get(slot, [slot])
+        else:    
+            zuh = self.bus.get(slot, [slot])
         print("in bussed slot",zuh)
         return self.rng.choice(zuh)
 
-    def playerbyslotbus(self, slot):
-        return self.playerbyslot(self.bussedslot(slot))
+    def playerbyslotbus(self, slot, bus=None):
+        return self.playerbyslot(self.bussedslot(slot, bus))
 
     def playerbyname(self, name):
         slot = self.slotbyname(name.lower())
@@ -107,6 +110,7 @@ class Game:
         self.resqueue.enqueue(action)
 
     def delay(self, phases, action):
+        print("delay",phases,action)
         self.delayqueue.enqueue((phases - 1, action))
         
     def resolve(self):
