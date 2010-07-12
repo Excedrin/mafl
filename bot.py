@@ -207,7 +207,7 @@ class Bot():
         return res
 
     def parsectcp(self, who, dat, rest):
-        print("ctcp: %s %s %s" %(who, dat,rest))
+        print("ctcp: %s %s %s" %(who, dat, rest))
         #ctcp: DCC ['CHAT', 'CHAT', '2130706433', '56772']
         if dat == 'DCC' and len(rest) == 4 and rest[0] == 'CHAT':
             ipint = int(rest[2])
@@ -270,9 +270,9 @@ class Bot():
                 if fields[3].startswith(':\x01'):
                     # got ctcp/action
                     print("ctcp fields",fields)
+                    fields[-1] = fields[-1][0:-1]
                     ctcp = fields[3][2:]
                     rest = fields[4:]
-                    rest[-1] = rest[-1][0:-1]
                     self.parsectcp(fields[0], ctcp, rest)
                     return
 

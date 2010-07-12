@@ -271,6 +271,7 @@ class Game:
                 self.nextphase()
 
         if self.phase.started:
+            # modkill timers
             for p in self.living():
                 self.timers.setfirst('%' + p.name.lower(), 307)
                 remaining = self.timers.remaining('%' + p.name.lower())
@@ -463,8 +464,12 @@ class Game:
 
             if p1 in self.fake:
                 self.fake[p2] = self.fake[p1]
+            remain = self.timers.remaining('%'+p1.lower())
             self.timers.remove('%'+p1.lower())
-            self.timers.settimer('%'+p2.lower(), 307)
+            if remain:
+                self.timers.settimer('%'+p2.lower(), remain.v)
+            else:
+                self.timers.settimer('%'+p2.lower(), 307)
             res = "replaced %s with %s"%(p1,p2)
         elif slot2:
             res = "player %s is already playing"%p2

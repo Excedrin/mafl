@@ -60,7 +60,8 @@ def run(bot, command, to, who, args):
 
     if command == "help":
         bot.reply(to, who, "normal commands: %s" % ", ".join(["join","start","go",
-                "wait","done","role","testsetup","living","votes","phase","replace"]))
+                "wait","done","role","testsetup","living","votes","phase","replace",
+                "dccchat"]))
         bot.reply(to, who, "mod commands: %s" % ", ".join(["reset",
                 "force","forcep","forcenextphase","showsetup","setrole","starttest"]))
 
