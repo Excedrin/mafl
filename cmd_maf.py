@@ -61,12 +61,12 @@ def run(bot, command, to, who, args):
     if command == "help":
         bot.reply(to, who, "normal commands: %s" % ", ".join(["join","start","go",
                 "wait","done","role","testsetup","living","votes","phase","replace",
-                "dccchat"]))
+                "dccchat", "changesetup"]))
         bot.reply(to, who, "mod commands: %s" % ", ".join(["reset",
                 "force","forcep","forcenextphase","showsetup","setrole","starttest"]))
 
     elif public and (command == "join" or command == "start"):
-        state.join(to, who)
+        state.join(to, who, args)
 
     elif command == "done":
         state.done(who)
@@ -120,6 +120,8 @@ def run(bot, command, to, who, args):
     elif public and command == "phase":
         state.phasemsg()
 # game start cmds
+    elif public and command == "changesetup":
+        state.changesetup(args[0] if args else None)
     elif public and command == "wait":
         state.wait()
     elif public and command == "go":

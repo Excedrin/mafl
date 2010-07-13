@@ -38,6 +38,8 @@ class Game:
         self.rng = rng
         self.verbose = False
 
+        self.setupname = None
+
     def message(self, who, message):
         if who in self.fake:
             self.out.append((self.fake[who], "(%s) %s"%(who, message)))
@@ -91,13 +93,15 @@ class Game:
             self.name[slot] = name
             self.players.append(mafl.Player(name, virtual))
 
-    def join(self, channel, name):
+    def join(self, channel, name, args):
         if name != "nolynch" and self.playerbyname(name) is None:
             if self.phase == mafl.phase.Idle:
                 self.start(channel)
                 self.newplayer(name)
             elif self.phase == mafl.phase.Signups:
                 self.newplayer(name)
+            if args:
+                self.changesetup(args[0])
 
     def enqueue(self, action):
         print("enqueue",action)
@@ -212,6 +216,9 @@ class Game:
         if winners:
             return (winners, losers, ())
         return ((), (), ())
+
+    def changesetup(self, setupname):
+        self.setupname = setupname
 
     def start(self, channel):
         if self.phase == mafl.phase.Idle:
@@ -370,7 +377,8 @@ class Game:
 
             if self.phase == mafl.phase.Signups:
                 pl = self.realplayers()
-                self.setup = mafl.setup.Setup(self.rng)
+                setupclass = mafl.setup.setups.get(self.setupname, mafl.setup.Setup)
+                self.setup = setupclass(self.rng)
            
                 if self.setup.getroles(len(pl)):
                     self.setup.setroles(pl)
@@ -595,11 +603,14 @@ class Game:
         self.nextphase()
 
     def testsetup(self, args):
-        if len(args) >= 1 and int(args[0]):
-            n = int(args[0])
-            print("testsetup for ",n)
+        if len(args) >= 2 and int(args[1]):
+            name = args[0]
+            n = int(args[1])
 
-            self.setup = mafl.setup.Setup(self.rng)
+            setupclass = mafl.setup.setups.get(name, mafl.setup.Setup)
+            print("testsetup for",setupclass,n)
+
+            self.setup = setupclass(self.rng)
             if self.setup.getroles(n):
                 byfac = {}
                 for r,f in self.setup.roles:
@@ -614,6 +625,8 @@ class Game:
 
     def gotest(self, to, who, args):
         if len(args) >= 1 and int(args[0]) <= 26 and self.phase == mafl.phase.Idle:
+            if len(args) == 2:
+                self.changesetup(args[1])
             self.verbose = True
             self.start(to)
             n = int(args[0])

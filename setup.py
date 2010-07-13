@@ -138,3 +138,50 @@ class Setup:
 
         self.roles = townroles + scumroles + neutralroles
         return True
+
+class SS3(Setup):
+    def getroles(self, n):
+        town = mafl.faction.Town()
+        maf = mafl.faction.Mafia()
+        self.roles = [(mafl.role.SuperSaint, town), (mafl.role.Townie, town), (mafl.role.Mafioso, maf)]
+        if n == 3:
+            return True
+        elif n > 3:
+            moremaf = int(n / 7)
+            self.roles.extend([(mafl.role.Mafioso, maf) for x in range(moremaf)])
+            r = lambda: self.rng.choice((mafl.role.SuperSaint, mafl.role.Townie))
+            self.roles.extend([(r(), town) for x in range(n - 3 - moremaf)])
+            return True
+        else:
+            return False
+
+class C9(Setup):
+    def getroles(self, n):
+        if n == 7:
+            town = mafl.faction.Town()
+            maf = mafl.faction.Mafia()
+            self.roles.append((mafl.role.Mafioso, maf))
+            self.roles.append((mafl.role.Mafioso, maf))
+            self.roles.append((mafl.role.Townie, town))
+            self.roles.append((mafl.role.Townie, town))
+            self.roles.append((mafl.role.Townie, town))
+            r1 = self.rng.choice((mafl.role.Cop, mafl.role.Townie))
+            r2 = self.rng.choice((mafl.role.Doctor, mafl.role.Townie))
+            self.roles.append((r1, town))
+            self.roles.append((r2, town))
+            return True
+        else:
+            return False
+
+def init():
+    env = init.__globals__
+
+    env['setups'] = {}
+
+    for k,v in list(filter(lambda t:
+            (type(t[1]) is type
+            and issubclass(t[1], Setup)),
+                env.items())):
+        env['setups'][k] = v
+
+init()
