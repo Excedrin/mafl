@@ -475,10 +475,13 @@ class Block(Action):
         bussed = self.gettargets(state)
 
         for act in state.queue:
-            if not act.noblock and not act.actor in bussed:
+            if act.noblock or not act.actor in bussed:
                 newqueue.enqueue(act)
+            else:
+                # blocked actions don't go into resqueue
+                msg = "You were blocked."
+                newqueue.enqueue(Message(0, [act.actor], {'msg':msg}))
                 self.used = True
-            # blocked actions don't go into resqueue
 
         state.resolved(self)
         return newqueue

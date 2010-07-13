@@ -142,7 +142,9 @@ class BusDriver(RoleBase):
 class Roleblocker(RoleBase):
     factions = [Town, Survivor, Mafia]
     name = "Roleblocker"
-    abilities = Townie.abilities + [Ability(Block)]
+    abilities = Townie.abilities + [Ability(Block),
+         Ability(Immune, Any, auto=True, resolvers=[Ability.Self()],
+                    args={'immune':[Block]})]
     def power(n, align):
         return 0.3
 
@@ -626,6 +628,18 @@ NaiveCop = TmplSanity(Cop, Naive())
 ParanoidCop = TmplSanity(Cop, Paranoid())
 StonedCop = TmplSanity(Cop, Stoned())
 RandomCop = TmplSanity(Cop, Random())
+
+InsaneJoat = TmplSanity(Joat, Insane())
+NaiveJoat = TmplSanity(Joat, Naive())
+ParanoidJoat = TmplSanity(Joat, Paranoid())
+StonedJoat = TmplSanity(Joat, Stoned())
+RandomJoat = TmplSanity(Joat, Random())
+
+InsaneStalker = TmplSanity(Stalker, Insane())
+NaiveStalker = TmplSanity(Stalker, Naive())
+ParanoidStalker = TmplSanity(Stalker, Paranoid())
+StonedStalker = TmplSanity(Stalker, Stoned())
+RandomStalker = TmplSanity(Stalker, Random())
 
 OneShotRedirecter = TmplOneShot(Redirecter)
 OneShotCop = TmplOneShot(Cop)

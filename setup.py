@@ -5,9 +5,10 @@ def bastard(role, n, fac):
     return role.power(n, fac) < 0 or getattr(role, 'truename', False)
 
 class Setup:
-    def __init__(self, rng):
+    def __init__(self, rng, args):
         self.rng = rng
         self.roles = []
+        self.args = args
 
     def setroles(self, players):
         self.rng.shuffle(players)
@@ -143,7 +144,9 @@ class SS3(Setup):
     def getroles(self, n):
         town = mafl.faction.Town()
         maf = mafl.faction.Mafia()
-        self.roles = [(mafl.role.SuperSaint, town), (mafl.role.Townie, town), (mafl.role.Mafioso, maf)]
+        self.roles = [(mafl.role.SuperSaint, town),
+                      (mafl.role.Townie, town),
+                      (mafl.role.Mafioso, maf)]
         if n == 3:
             return True
         elif n > 3:
@@ -172,6 +175,94 @@ class C9(Setup):
             return True
         else:
             return False
+
+class Straight(Setup):
+# straight: Only Townies, sane Cops, Doctors, Vigilantes, Roleblockers, 
+# Mafiosos, and Godfathers appear.
+    def getroles(self, n):
+        town = mafl.faction.Town()
+        maf = mafl.faction.Mafia()
+
+        if n < 3:
+            return False
+
+        print("setup n:",n)
+
+        nscum = int(round(n * (1/4.5)))
+        scum = [maf for _ in range(nscum)]
+        ntown = n - nscum
+        print("ntown", ntown)
+
+        if n <= 4:
+            maxscumpower = 0.5
+        else:
+            maxscumpower = 99
+
+        scumroles = []
+
+        okroles = [mafl.role.Roleblocker, mafl.role.Mafioso, mafl.role.Godfather]
+        for f in scum:
+            fc = f.__class__
+            r = self.rng.choice(okroles)
+            if (r,maf) in scumroles:
+                print("repick",r.getname())
+                r = self.rng.choice(okroles)
+            scumroles.append((r, f))
+
+        scumpower = sum([x.power(n, align) for (x,align) in scumroles])
+        print("scumpower",scumpower,[x.getname() for x,_ in scumroles])
+
+        avgscumpower = scumpower / len(scumroles)
+
+        maxpower = scumpower
+        townroles = []
+        townpower = 0
+
+        fac = mafl.faction.Town
+        normalroles = [mafl.role.Townie, mafl.role.Cop, mafl.role.Doctor, 
+                       mafl.role.Vigilante, mafl.role.Roleblocker]
+
+        print("scumpower %0.2f" % scumpower)
+        for x in range(ntown):
+            print("townpower %0.2f"%(townpower))
+            if townpower > scumpower:
+                r = mafl.role.Townie
+                print("too much town power, picking basic role",r.getname())
+            else:
+                r = self.rng.choice(normalroles)
+                if (r,town) in townroles:
+                    print("repick",r.getname())
+                    r = self.rng.choice(normalroles)
+                print("picking normal role",r.getname())
+            townroles.append((r, town))
+            townpower = sum([x.power(n, mafl.faction.Town) for x,_ in townroles])
+
+        print("townpower",townpower,[x.getname() for x,_ in townroles])
+
+        self.roles = townroles + scumroles
+        return True
+
+class Fixed(Setup):
+    def getroles(self, n):
+        factions = {}
+
+        for arg in self.args:
+            (rolename, facname) = arg.split(",")
+            print("rolename",rolename,"facname",facname)
+            if not facname in factions:
+                facclass = mafl.faction.factions.get(facname, None)
+                if facclass:
+                    factions[facname] = facclass()
+                else:
+                    return False
+            faction = factions[facname]
+            role = mafl.role.roles.get(rolename, None)
+            if faction and role:
+                self.roles.append((role, faction))
+            else:
+                return False
+
+        return True
 
 def init():
     env = init.__globals__

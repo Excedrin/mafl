@@ -121,7 +121,7 @@ def run(bot, command, to, who, args):
         state.phasemsg()
 # game start cmds
     elif public and command == "changesetup":
-        state.changesetup(args[0] if args else None)
+        state.changesetup(args)
     elif public and command == "wait":
         state.wait()
     elif public and command == "go":
