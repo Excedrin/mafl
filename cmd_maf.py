@@ -1,5 +1,5 @@
+#!/usr/bin/python3
 import random
-
 import game
 import dumper
 
@@ -164,3 +164,5 @@ if __name__ == "__main__":
             command = fields[2]
             args = fields[3:]
             run(tester, command, to, who, args)
+        else:
+            break

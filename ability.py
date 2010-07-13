@@ -175,7 +175,7 @@ class Ability:
             slots[0:len(resolved)] = resolved
             resolved.extend(resolver.gettargets(state, actor, target, slots))
 
-        ret = list(filter(None, resolved))
+        ret = list(filter(lambda x: x is not None, resolved))
         print("resolved",ret)
         return ret
 

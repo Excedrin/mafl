@@ -53,16 +53,13 @@ class Game:
     def playerbyslot(self, slot):
         return self.players[slot]
 
-    def bussedslot(self, slot, bus=None):
-        if bus:
-            zuh = bus.get(slot, [slot])
-        else:    
-            zuh = self.bus.get(slot, [slot])
-        print("in bussed slot",zuh)
-        return self.rng.choice(zuh)
+    def bussedslot(self, slot):
+        bussed = self.bus.get(slot, [slot])
+        print("in bussed slot",bussed)
+        return bussed[0]
 
-    def playerbyslotbus(self, slot, bus=None):
-        return self.playerbyslot(self.bussedslot(slot, bus))
+    def playerbyslotbus(self, slot):
+        return self.playerbyslot(self.bussedslot(slot))
 
     def playerbyname(self, name):
         slot = self.slotbyname(name.lower())
@@ -229,7 +226,7 @@ class Game:
     def wait(self):
         if self.phase == mafl.phase.Signups:
             remaining = self.timers.remaining('start')
-            if remaining and remaining < 61:
+            if remaining and remaining.v < 61:
                 self.timers.settimer('start', 61)
                 self.message(None, "game start delayed %d seconds"%61)
 
@@ -562,7 +559,8 @@ class Game:
     def tryability(self, who, public, ability, args):
         player = self.playerbyname(who)
         if player:
-            self.timers.settimer(who.lower(), 307)
+            # reset modkill timer
+            self.timers.settimer('%'+who.lower(), 307)
 
             print("found player:",who,player)
             try:

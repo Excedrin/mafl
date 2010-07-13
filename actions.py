@@ -43,6 +43,12 @@ class ActionBase:
     def resolve(self, state):
         return state.queue
 
+    def gettargets(self, state):
+        if self.nobus:
+            return self.targets
+        else:
+            return state.fix(self.targets)
+
 class Action(ActionBase):
     pass
 
@@ -120,12 +126,10 @@ class Voteop(Action):
     undo = False
 
     def resolve(self, state):
-        for slot in self.targets:
-            if self.nobus:
-                player = state.playerbyslot(slot)
-            else:
-                bus = self.args.get('bus', None)
-                player = state.playerbyslotbus(slot, bus)
+        bussed = self.gettargets(state)
+
+        for slot in bussed:
+            player = state.playerbyslot(slot)
 
             for abi in player.allabilities():
                 if issubclass(abi.action, Vote):
@@ -138,10 +142,11 @@ class Voteop(Action):
         state.resolved(self)
 
         if self.used and not self.undo:
-            delayedact = Voteop(0, self.targets,
+            delayedact = Voteop(0, bussed,
                                 args={'op':self.op.undo, 'undo':True, 'notrack':True,
                                     'noimmune':True, 'notrigger':True,
-                                    'noblock':True, 'bus':copy.copy(state.bus) })
+                                    'noblock':True, 'nobus':True })
+
             state.delay(self.phases, delayedact)
 
             if self.trade:
@@ -156,8 +161,8 @@ class Voteop(Action):
                 delayedact = Voteop(0, [self.actor],
                                     args={'op':self.op, 'undo':True, 'notrack':True,
                                         'noimmune':True, 'notrigger':True,
-                                        'nobus':True, 'noblock':True,
-                                        'bus':copy.copy(state.bus) })
+                                        'nobus':True, 'noblock':True })
+                                        
                 state.delay(self.phases, delayedact)
 
         return state.queue
@@ -202,12 +207,9 @@ class Kill(Action):
     how = "was killed"
 
     def resolve(self, state):
-        for slot in self.targets:
-            nobus = self.args.get('nobus', False)
-            if nobus:
-                player = state.playerbyslot(slot)
-            else:
-                player = state.playerbyslotbus(slot)
+        for slot in self.gettargets(state):
+            player = state.playerbyslot(slot)
+
             if player.living:
                 player.living = False
                 print("kill resolved (%s killed by %s)" % (player.name, self.actor))
@@ -275,14 +277,16 @@ class Poison(Action):
         self.used = True
         state.resolved(self)
 
-        bus = self.args.get('bus', None)
-        player = state.playerbyslotbus(slot, bus)
+        bussed = self.gettargets(state)
 
-        delayedact = PoisonKill(0, self.targets)
-        state.delay(self.phases, delayedact,
-                                args={'notrack':True, 'noimmune':True,
-                                    'notrigger':True, 'noblock':True,
-                                    'bus':copy.copy(state.bus) })
+        for slot in bussed:
+            player = state.playerbyslot(slot)
+
+            delayedact = PoisonKill(0, bussed,
+                                    args={'notrack':True, 'noimmune':True,
+                                        'notrigger':True, 'noblock':True,
+                                        'nobus':True })
+            state.delay(self.phases, delayedact)
         return state.queue
 
 class Flip(Action):
@@ -328,8 +332,8 @@ class Resurrect(Action):
     how = "returned to life"
 
     def resolve(self, state):
-        for slot in self.targets:
-            player = state.playerbyslotbus(slot)
+        for slot in self.gettargets(state):
+            player = state.playerbyslot(slot)
             if not player.living:
                 player.living = True
                 msg = "%s %s"%(player.name, self.how)
@@ -349,8 +353,9 @@ class Recruit(Action):
         actor = state.playerbyslot(self.actor)
 
         if actor.living:
-            for slot in self.targets:
-                player = state.playerbyslotbus(slot)
+            for slot in self.gettargets(state):
+                player = state.playerbyslot(slot)
+
                 if 'role' in self.args:
                     player.setrole(self.args['role'])
                 dorecruit = False
@@ -420,10 +425,12 @@ class Bus(Action):
 
             if source in state.bus:
                 state.bus[source].append(dest)
+                state.rng.shuffle(state.bus[source])
             else:
                 state.bus[source] = [dest]
             if dest in state.bus:
                 state.bus[dest].append(source)
+                state.rng.shuffle(state.bus[dest])
             else:
                 state.bus[dest] = [source]
 
@@ -443,7 +450,7 @@ class Delay(Action):
     def resolve(self, state):
         newqueue = Mqueue()
         for act in state.queue:
-            if act.actor in [state.bussedslot(x) for x in self.targets]:
+            if act.actor in self.gettargets(state):
                 if act.args.get('delayed', False):
                     newqueue.enqueue(act)
                 else:
@@ -465,8 +472,10 @@ class Block(Action):
     def resolve(self, state):
         newqueue = Mqueue()
 
+        bussed = self.gettargets(state)
+
         for act in state.queue:
-            if not act.noblock and not act.actor in self.targets:
+            if not act.noblock and not act.actor in bussed:
                 newqueue.enqueue(act)
                 self.used = True
             # blocked actions don't go into resqueue
@@ -481,8 +490,10 @@ class Eavesdrop(Action):
 
     def resolve(self, state):
         newqueue = Mqueue()
+        bussed = self.gettargets(state)
+
         for act in state.queue:
-            for target in self.targets:
+            for target in bussed:
                 if isinstance(act, Message) and target in act.targets:
                     newact = copy.deepcopy(act)
                     newact.targets = [self.actor]
@@ -500,7 +511,7 @@ class Friend(Action):
         actor = state.playerbyslot(self.actor)
 
         msg = "%s is %s" % (actor.name, actor.faction.name)
-        for target in state.fix(self.targets):
+        for target in self.gettargets(state):
             state.enqueue(Message(self.actor, [target], {'msg':msg}))
             self.used = True
 
@@ -522,7 +533,8 @@ class Guard(Action):
 
     def resolve(self, state):
         killfound = False
-        for target in self.targets:
+
+        for target in self.gettargets(state):
             newqueue = Mqueue()
             for act in state.queue:
                 if killfound or (not (isinstance(act, Kill) and target in act.targets)):
@@ -595,7 +607,9 @@ class Disable(Action):
     superblock = True
     phases = 2
     def resolve(self, state):
-        delayedact = Block(0, self.targets, args={'super':True})
+        bussed = self.gettargets(state)
+
+        delayedact = Block(0, bussed, args={'super':True})
         state.delay(self.phases, delayedact)
 
         return Block.resolve(self, state)
@@ -846,7 +860,7 @@ class Steal(Action):
     priority = 41
 
     def resolve(self, state):
-        for target in state.fix(self.targets):
+        for target in self.gettargets(state):
             player = state.playerbyslot(target)
             abis = list(filter(lambda x:not x.auto and not x.nosteal, 
                         player.abilities.values()))
@@ -890,9 +904,10 @@ class Morph(Action):
     priority = 43
 
     def resolve(self, state):
-        if len(self.targets) == 1:
+        bussed = self.gettargets(state)
+        if len(bussed) == 1:
             p1 = state.playerbyslot(self.actor)
-            p2 = state.playerbyslot(self.targets[0])
+            p2 = state.playerbyslot(bussed[0])
             print("morph %s %s -> %s %s"%(p1.name, p1.role, p2.name, p2.role))
 
             p1.role = p2.role
