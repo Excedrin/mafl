@@ -218,7 +218,10 @@ class Game:
         return ((), (), ())
 
     def changesetup(self, args):
-        self.setupargs = args
+        if self.phase == mafl.phase.Signups:
+            print("changesetup",args)
+            self.setupargs = args
+            self.message(None, "setup changed to %s"%args[0])
 
     def start(self, channel):
         if self.phase == mafl.phase.Idle:
@@ -377,6 +380,7 @@ class Game:
 
             if self.phase == mafl.phase.Signups:
                 pl = self.realplayers()
+                print("starting setup:",self.setupargs)
                 setupclass = mafl.setup.setups.get(self.setupargs[0], mafl.setup.Setup)
                 self.setup = setupclass(self.rng, self.setupargs[1:])
            
@@ -609,39 +613,66 @@ class Game:
             args.append('Setup')
         if len(args) >= 2 and int(args[0]):
             n = int(args[0])
-            name = args[1]
+            if n <= 26:
+                name = args[1]
 
-            setupclass = mafl.setup.setups.get(name, mafl.setup.Setup)
-            print("testsetup for",setupclass,n)
+                setupclass = mafl.setup.setups.get(name, mafl.setup.Setup)
+                print("testsetup for",setupclass,n)
 
-            self.setup = setupclass(self.rng, args[2:])
-            if self.setup.getroles(n):
-                byfac = {}
-                for r,f in self.setup.roles:
-                    if str(f.name) in byfac:
-                        byfac[str(f.name)].append(r.getname())
-                    else:
-                        byfac[str(f.name)] = [r.getname()]
-                msg = []
-                for k,v in byfac.items():
-                    msg.append("%s: %s" %(k, ", ".join(v)))
-                return "; ".join(msg)
+                self.setup = setupclass(self.rng, args[2:])
+                if self.setup.getroles(n):
+                    byfac = {}
+                    for r,f in self.setup.roles:
+                        if str(f.name) in byfac:
+                            byfac[str(f.name)].append(r.getname())
+                        else:
+                            byfac[str(f.name)] = [r.getname()]
+
+                    msg = []
+                    for k,v in byfac.items():
+                        roles = []
+
+                        v.sort()
+                        prev = None
+                        count = 0
+                        for role in v:
+                            if prev:
+                                if role == prev:
+                                    count += 1
+                                else:
+                                    roles.append((count, prev))
+                                    count = 0
+                            prev = role
+                        else:
+                            roles.append((count, role))
+
+                        strs = []
+                        for count,role in roles:
+                            if count:
+                                strs.append("%s (x%d)" % (role, count+1))
+                            else:
+                                strs.append(role)
+
+                        msg.append("%s: %s" %(k, ", ".join(strs)))
+                    return "; ".join(msg)
+                else:
+                    return "setup failed"
             else:
-                return "setup failed"
+                return "limit is 26"
 
     def gotest(self, to, who, args):
         print("gotest",args)
         if len(args) >= 1 and int(args[0]) <= 26 and self.phase == mafl.phase.Idle:
+            self.start(to)
+            self.phase = mafl.phase.Signups
             if len(args) >= 2:
                 self.changesetup(args[1:])
             self.verbose = True
-            self.start(to)
             n = int(args[0])
             print("runtest for ",n)
             for name in [chr(ord('a') + x) for x in range(n)]:
                 self.newplayer(name)
                 self.fake[name] = who
-            self.phase = mafl.phase.Signups
             self.nextphase(mafl.phase.Day)
 
     def makefake(self, who, args):

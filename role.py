@@ -23,7 +23,9 @@ class Townie(RoleBase):
     factions = [Town]
     name = "Townie"
     abilities = [Ability(Vote, Day, free=True, public=True, optargs=True,
-        nosteal=True, restrict=[Ability.LivingOrNL])]
+                    nosteal=True, restrict=[Ability.LivingOrNL]),
+                Ability(Vote, Day, name='unvote', free=True, public=True, optargs=True,
+                    nosteal=True, restrict=[Ability.LivingOrNL])]
     def power(n, align):
         return 0
 

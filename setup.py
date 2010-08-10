@@ -176,6 +176,40 @@ class C9(Setup):
         else:
             return False
 
+class F11(Setup):
+    def getroles(self, n):
+        if n == 9:
+            town = mafl.faction.Town()
+            maf = mafl.faction.Mafia()
+            setupno = self.rng.randint(0,3)
+
+            if setupno == 0:
+                self.roles.append((mafl.role.Roleblocker, maf))
+                self.roles.append((mafl.role.Townie, town))
+                self.roles.append((mafl.role.Townie, town))
+            elif setupno == 1:
+                self.roles.append((mafl.role.Mafioso, maf))
+                self.roles.append((mafl.role.Townie, town))
+                self.roles.append((mafl.role.Cop, town))
+            elif setupno == 2:
+                self.roles.append((mafl.role.Mafioso, maf))
+                self.roles.append((mafl.role.Townie, town))
+                self.roles.append((mafl.role.Doctor, town))
+            elif setupno == 3:
+                self.roles.append((mafl.role.Roleblocker, maf))
+                self.roles.append((mafl.role.Cop, town))
+                self.roles.append((mafl.role.Doctor, town))
+
+            self.roles.append((mafl.role.Mafioso, maf))
+            self.roles.append((mafl.role.Townie, town))
+            self.roles.append((mafl.role.Townie, town))
+            self.roles.append((mafl.role.Townie, town))
+            self.roles.append((mafl.role.Townie, town))
+            self.roles.append((mafl.role.Townie, town))
+            return True
+        else:
+            return False
+
 class Straight(Setup):
 # straight: Only Townies, sane Cops, Doctors, Vigilantes, Roleblockers, 
 # Mafiosos, and Godfathers appear.

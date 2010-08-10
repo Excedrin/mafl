@@ -120,7 +120,7 @@ def run(bot, command, to, who, args):
     elif public and command == "phase":
         state.phasemsg()
 # game start cmds
-    elif public and command == "changesetup":
+    elif command == "changesetup":
         state.changesetup(args)
     elif public and command == "wait":
         state.wait()
