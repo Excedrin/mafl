@@ -33,7 +33,7 @@ def nickchange(bot, before, after):
         state.replace(before, after, True)
     bot.store('maf', state)
 
-def run(bot, command, to, who, args):
+def run(bot, command, to, who, args, authed):
     if not command:
         return
 

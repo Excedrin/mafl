@@ -120,6 +120,8 @@ class Bot():
 
         self.usenotice = cfg.get('usenotice', False)
 
+        self.owner = cfg.get('owner', "")
+
         self.servernick = None
 
         self.exit = False
@@ -148,6 +150,11 @@ class Bot():
 
         self.fdmap = {}
         self.sockmap = {}
+
+
+    def auth(self, src):
+        #print("auth: %s %s" %(self.owner, src[1:]))
+        return self.owner == src[1:]
 
     def adduser(self, sock):
         print("adduser",nick(sock.who).lower())
@@ -303,9 +310,10 @@ class Bot():
                     return
 #                noemptyargs = list(filter(None, fields[4:]))
 
+                authed = self.auth(fields[0])
                 for cmd in self.commands:
                     try:
-                        cmd.run(self, clean(fields[3]), fields[2], who, fields[4:])
+                        cmd.run(self, clean(fields[3]), fields[2], who, fields[4:], authed)
                     except Exception as e:
                         print("exception running cmd: %s\n%s\n" %(cmd, e))
                         traceback.print_exc()
