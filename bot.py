@@ -406,7 +406,7 @@ class Bot():
                             self.addsock(newsock)
                             self.closesock(sock)
                         else:
-                            buf = sock.recv(4096).decode('utf8')
+                            buf = sock.recv(4096).decode(encoding='utf-8', errors='replace')
                             if len(buf):
                                 #print("recv'd", len(buf))
                                 self.recvd += len(buf)
