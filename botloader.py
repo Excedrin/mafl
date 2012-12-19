@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import imp
-import reloader
-reloader.enable()
+
+import monitor
 
 import bot
 
@@ -16,21 +16,16 @@ sys.stderr = sys.stdout
 parser = SafeConfigParser()
 parser.read('mafl.ini')
 
-def getcfg(section, key, default):
-    try:
-        return parser.get(section, key)
-    except:
-        return default
-
 cfg = {}
 
 for k in parser.options('mafl'):
-    cfg[k] = getcfg('mafl', k, None)
+    cfg[k] = parser.get('mafl', k, fallback=None)
 
 if 'network' in cfg:
     for k in parser.options(cfg['network']):
-        cfg[k] = parser.get(cfg['network'], k, cfg[k])
+        cfg[k] = parser.get(cfg['network'], k, fallback=cfg[k])
 
+print(cfg)
 ####
 ####
 ####
@@ -39,12 +34,7 @@ b = bot.Bot(cfg)
 
 quit = False
 
-def reload(m):
-    print("Reloading " + m.__file__)
-    imp.reload(m)
-
-r = reloader.Reloader(reload=reload)
-#r = reloader.Reloader()
+r = monitor.Reloader()
 
 while not quit:
     (b, quit) = b.run()

@@ -39,12 +39,14 @@ def run(bot, command, to, who, args):
 
     public = to and to[0] == "#"
 
+    noncommand = False
+
     # in public, cmdchar is necessary
     if public:
         if command[0] == '%':
             command = command[1:]
         else:
-            return
+            noncommand = True
     else:
         # in private, cmdchar is optional
         if command[0] == '%':
@@ -57,6 +59,11 @@ def run(bot, command, to, who, args):
 
     if state == None:
         state = game.Game(rng)
+
+    if noncommand:
+        # chatting, active player, reset modkill timer
+        state.activity(who)
+        return
 
     if command == "help":
         bot.reply(to, who, "normal commands: %s" % ", ".join(["join","start","go",

@@ -39,7 +39,7 @@ class Sock:
         self.queued = []
 
     def pollin(self):
-        return None 
+        return None
     def mangle(self, line):
         return line
     def recv(self, size):
@@ -116,6 +116,9 @@ class Bot():
         self.nick = cfg['nick']
         self.user = cfg['user']
         self.realname = cfg['realname']
+        self.channel = cfg['channel']
+
+        self.usenotice = cfg.get('usenotice', False)
 
         self.servernick = None
 
@@ -174,7 +177,10 @@ class Bot():
 
     def notice(self, to, msg):
         if not self.dcchack(to,msg):
-            self.send("NOTICE %s :%s" %(to, msg))
+            if self.usenotice:
+                self.send("NOTICE %s :%s" %(to, msg))
+            else:
+                self.send("PRIVMSG %s :%s" %(to, msg))
 
     def privmsg(self, to, msg):
         if not self.dcchack(to,msg):
@@ -199,7 +205,7 @@ class Bot():
 
     def store(self, key, value):
         self.state[key] = value
-    
+
     def ipstr(self, ipstr):
         res = 0
         for o,n in zip(ipstr.split('.'), range(4)):
@@ -218,7 +224,7 @@ class Bot():
 
             sock = DCC(ipstr, port, who, self.nick)
             sock.connect()
-            self.addsock(sock)            
+            self.addsock(sock)
 
     def parse(self, line):
         fields = list(filter(None, line.split(" ")))
@@ -334,7 +340,7 @@ class Bot():
         # join hack
         if not self.joined:
             print("join")
-            self.send('JOIN :#m')
+            self.send('JOIN :%s' % self.channel)
 
         for cmd in self.commands:
             tick = getattr(cmd, 'tick', lambda _: None)
@@ -428,7 +434,7 @@ class Bot():
                             print("exception sending to socket", message)
                 else:
                     print("fd not in map",fd)
-                    
+
             if not events: # poll timeout
                 self.tick()
 

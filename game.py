@@ -113,7 +113,7 @@ class Game:
     def delay(self, phases, action):
         print("delay",phases,action)
         self.delayqueue.enqueue((phases - 1, action))
-        
+
     def resolve(self):
         if self.queue:
             if self.verbose:
@@ -282,7 +282,7 @@ class Game:
             for p in self.living():
                 self.timers.setfirst('%' + p.name.lower(), 307)
                 remaining = self.timers.remaining('%' + p.name.lower())
- 
+
                 if remaining and remaining.v in (23,5):
                     self.message(p.name, "modkill in %d seconds"%remaining.v)
                     self.timers.dec('%' + p.name.lower())
@@ -383,7 +383,7 @@ class Game:
                 print("starting setup:",self.setupargs)
                 setupclass = mafl.setup.setups.get(self.setupargs[0], mafl.setup.Setup)
                 self.setup = setupclass(self.rng, self.setupargs[1:])
-           
+
                 if self.setup.getroles(len(pl)):
                     self.setup.setroles(pl)
                     print("sending roles")
@@ -557,7 +557,7 @@ class Game:
         names = self.playernames()
         if tryname in names:
             return (tryname, 1, tryname)
-        
+
         for name in filter(lambda x:len(x) > 1, names):
             ratio = SequenceMatcher(None, tryname.lower(), name.lower()).ratio()
             if ratio > best:
@@ -568,11 +568,16 @@ class Game:
     def cleanargs(self, args):
         return [self.fuzzy(x) for x in args]
 
-    def tryability(self, who, public, ability, args):
+    def activity(self, who):
         player = self.playerbyname(who)
         if player:
             # reset modkill timer
             self.timers.settimer('%'+who.lower(), 307)
+
+    def tryability(self, who, public, ability, args):
+        player = self.playerbyname(who)
+        if player:
+            self.activity(who)
 
             print("found player:",who,player)
             try:
