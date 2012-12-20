@@ -1,4 +1,5 @@
-Full, working* Mafia bot.
+Full, working Mafia bot.
+
 Coded in python3.
 
 IRC bot stuff:
@@ -23,3 +24,98 @@ mafia.py
 
 test harness (just dumps stuff via print, doesn't use quickcheck):
 tester.py
+
+This bot uses an ini file for config. If the ini is setup, start the bot
+via botloader.py and it should connect to IRC and join the channel listed.
+
+It's a modular bot, so there's also cmd_raw (as an example) to remote
+control it (lets you /msg bot raw privmsg :#foo hello)
+
+[mafl]
+quitpass=badpassword
+server=localhost
+port=6667
+nick=botnick
+user=something
+realname=something
+channel=#default
+dccminport=30000
+dccmaxport=50000
+dccip=1.2.3.4
+owner=:Excedrin
+# use a specific network:
+network=foonet
+
+# this section overrides settings in the [mafl] section if it exists
+[foonet]
+server=irc.foonet.orgfoo.edu
+channel=#falafel
+owner=:Nick!ident@host
+
+
+
+Once the bot is running:
+%help
+<mafl> normal commands: join, start, go, wait, done, role, testsetup, living, votes, phase, replace, dccchat, changesetup
+<mafl> mod commands: reset, force, forcep, forcenextphase, showsetup, setrole, starttest
+
+%testsetup
+<mafl> mafia: Anti-Doctor, Disabler; town: Bodyguard, Redirecter, Townie (x3)
+
+%testsetup 3 SS3
+<mafl> mafia: Mafioso; town: Super-Saint, Townie
+
+%starttest makes a game where the players are all fake, which is useful for testing mechanics:
+
+%starttest 5
+5 here is number of players
+<mafl> (b) Bulletproof (mafia) members ( b ), you win if you have majority. group abilities { kill (night) } abilities { auto immune kill (any), 
+                vote (day), unvote (day) }
+<mafl> (c) Reviver (town) You win when all threats to the town are eliminated. abilities { 1 use auto resurrect (any), vote (day), unvote (day) }
+<mafl> (a) Magnet (town) You win when all threats to the town are eliminated. abilities { vote (day), unvote (day), attract (night) }
+<mafl> (d) Townie (town) You win when all threats to the town are eliminated. abilities { vote (day), unvote (day) }
+<mafl> (e) Cop (town) You win when all threats to the town are eliminated. abilities { inspect (night), vote (day), unvote (day) }
+
+In this setup, player c is a Reviver, so will come back to life once:
+<@Excedrin> %force a %vote c
+<@Excedrin> %force b %vote c
+<@Excedrin> %force d %vote c
+< mafl> Vote count: 3 to lynch
+< mafl> c (3) - a, b, d
+< mafl> c was lynched
+< mafl> c returned to life
+< mafl> night
+< mafl> 5 living players: b, c, a, d, e
+< mafl> night ends in 173 seconds
+
+Now it's night, so we force players with actions to use them:
+
+<@Excedrin> %forcep e %inspect d
+<@Excedrin> %forcep b %kill e
+<@Excedrin> %forcep a %attract b
+< mafl> night ends in 11 seconds
+< mafl> a was killed
+< mafl> a was a town Magnet
+< mafl> day
+< mafl> 4 living players: b, c, d, e
+
+Player b tried to kill e, but the Magnet (a) attracted the kill
+
+<mafl> (e) inspect (d) confirmed
+<mafl> (b) kill (e) confirmed
+<mafl> (a) attract (b) confirmed
+<mafl> (e) d is town
+
+Player e's inspect went thru.
+
+At this point, player e knows that d and c are town, leaving b... but that doesn't guarantee a win.
+
+Bot currently supports a lot of roles:
+python3
+>>> import role
+>>> role.printroles()
+cult 4 ['Ascetic', 'Eavesdropper', 'Delayer', 'Cultist']
+town 88 ['Copycat', 'Incompetent Vigilante', 'Naive Jack of all Trades', 'Nonvoter', 'Ninja', 'Day Cop', 'Confused Jack of all Trades', 'Skulker', 'Redirecter', 'Stoned Stalker', 'Ascetic', 'Bomb', 'Disabler', '0% Cop', 'Watcher', 'Incompetent Confused Jack of all Trades', 'Random Cop', 'Crazed Fiend', 'Poison Doctor', 'Insane Cop', 'Tracker', 'Role Cop', 'Friendly Neighbor', 'Naive Cop', 'Motivator', 'Voteblocker', 'Day One-Shot Vigilante', 'One-Shot Cop', 'Paranoid Cop', 'Coward', 'Townie', 'One-Shot Redirecter', '50% Jack of all Trades', 'Jack of all Trades', 'Mimic', 'Changeling', 'Doctor', 'Night Watchman', 'Shuffler', 'Reviver', 'Incompetent Stalker', 'Paranoid Jack of all Trades', 'Double Voter', 'Vigilante', 'Bodyguard', 'Eavesdropper', 'Death Miller', 'Random Jack of all Trades', '0% Vigilante', 'Morpher', 'Commando', 'Insane Jack of all Trades', 'Delayer', 'Stoned Cop', '0% Jack of all Trades', '50% Vigilante', 'Thief', 'Stalker', 'Incompetent Jack of all Trades', 'Roleblocker', '0% Paranoid Gun Owner', 'Human Shield', 'Insane Stalker', 'Stoned Jack of all Trades', 'Day Vigilante', 'Psychiatrist', 'Bulletproof', 'One-Shot Vigilante', 'Vote Giver', 'Incompetent Stalker', 'Cop', 'Bus Driver', 'Stalker', 'Poisoner', 'Magnet', '50% Cop', 'Super-Saint', 'Day Disabler', 'Naive Stalker', 'Elite Bodyguard', 'Random Stalker', 'Incompetent Cop', 'Miller', 'Paranoid Gun Owner', 'Vote Thief', 'Randomizer', 'Grave Vigilante', 'Paranoid Stalker']
+sk 8 ["Devil's Advocate", 'Ninja', 'Crazed Fiend', 'Chainsaw Murderer', 'Morpher', 'Commando', 'Serial Killer', 'Poisoner']
+survivor 22 ['Copycat', 'Skulker', 'Ascetic', 'Bomb', 'Watcher', 'Survivor', 'Poison Doctor', 'Friendly Neighbor', 'Coward', 'Changeling', 'Reviver', 'Eavesdropper', 'Delayer', 'Roleblocker', '0% Paranoid Gun Owner', 'Human Shield', 'Poisoner', 'Magnet', 'Super-Saint', 'Paranoid Gun Owner', 'Randomizer', 'Grave Vigilante']
+mafia 29 ['Redirecter', 'Ascetic', 'Anti-Doctor', 'Disabler', 'Agent', 'Watcher', 'Framer', 'Poison Doctor', 'Tracker', 'Role Cop', 'Voteblocker', 'Mafioso', 'Coward', 'One-Shot Redirecter', 'Mimic', 'Lawyer', 'Doctor', 'Night Watchman', 'Shuffler', 'Eavesdropper', 'Delayer', 'Thief', 'Roleblocker', 'Human Shield', 'Godfather', 'Bulletproof', 'Bus Driver', 'Day Disabler', 'Randomizer']
