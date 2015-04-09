@@ -87,12 +87,12 @@ def run(bot, command, to, who, args, authed):
 # mod commands
     elif public and command == "force":
         if len(args) >= 2:
-            run(bot, args[1], to, args[0], args[2:])
+            run(bot, args[1], to, args[0], args[2:], authed)
         state.makefake(who, args)
 
     elif public and command == "forcep":
         if len(args) >= 2:
-            run(bot, args[1], "bot", args[0], args[2:])
+            run(bot, args[1], "bot", args[0], args[2:], authed)
         state.makefake(who, args)
 
     elif public and command == "forcenextphase":
@@ -172,6 +172,7 @@ if __name__ == "__main__":
             to = fields[1]
             command = fields[2]
             args = fields[3:]
-            run(tester, command, to, who, args)
+            authed = False
+            run(tester, command, to, who, args, authed)
         else:
             break

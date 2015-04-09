@@ -91,7 +91,9 @@ class Game:
             slot = len(self.players)
             self.slot[name.lower()] = slot
             self.name[slot] = name
-            self.players.append(mafl.Player(name, virtual))
+            newp = mafl.Player(name, virtual)
+            self.players.append(newp)
+            return newp
 
     def join(self, channel, name, args):
         if name != "nolynch" and self.playerbyname(name) is None:

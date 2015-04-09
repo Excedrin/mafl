@@ -284,12 +284,21 @@ class Godfather(RoleBase):
     def power(n, align):
         return 0.6
 
+class Lynchproof(RoleBase):
+    factions = [Town, Survivor]
+    name = "Lynchproof"
+    abilities = Townie.abilities + \
+        [Ability(Immune, Any, auto=True, resolvers=[Ability.Self()],
+                    args={'immune':[Lynch]})]
+    def power(n, align):
+        return 0.3
+
 class Ascetic(RoleBase):
     factions = [Town, Survivor, Mafia, Cult]
     name = "Ascetic"
     abilities = Townie.abilities + \
         [Ability(Immune, Any, auto=True, resolvers=[Ability.Self()],
-                    args={'not':0,'immune':[Kill]})]
+                    args={'not':0,'immune':[Kill, Lynch]})]
     def power(n, align):
         if align is Cult:
             return 0.4
@@ -614,7 +623,7 @@ class TmplSanity(Tmpl):
         Tmpl.__init__(self, role)
 
         for abi in self.abilities:
-            abi.args['sanity'] = sanity
+            abi.args['inspect'] = sanity
 
         self.name = role.name
 

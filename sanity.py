@@ -64,10 +64,8 @@ class Random(Stoned, Naive):
     def __init__(self, factions=[faction.Town, faction.Mafia]):
         self.factions = factions
     def result(self, p):
-        if random.choice((True,False)):
-            return Stoned.result(self, p)
-        else:
-            return Paranoid.result(self, p)
+        cls = random.choice((Stoned, Paranoid, Naive))
+        return cls.result(self, p)
 
 class Rolecop(Sanity):
     name = "Role"

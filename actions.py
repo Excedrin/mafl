@@ -27,7 +27,7 @@ class ActionBase:
 
         self.used = False
         for k,v in args.items():
-#            print("action set from args",k,v)
+            #print("action set from args",k,v)
             self.__dict__[k] = v
 
     def __lt__(self, other):
@@ -190,6 +190,7 @@ class Inspect(Action):
     inspect = sanity.Sane([faction.Mafia, faction.Town])
 
     def resolve(self, state):
+        #print("Inspect: %s"%self.inspect)
         for slot in self.targets:
             target = state.playerbyslotbus(slot)
             intended = state.playerbyslot(slot)
@@ -543,10 +544,10 @@ class Guard(Action):
                 if killfound or (not (isinstance(act, Kill) and target in act.targets)):
                     newqueue.enqueue(act)
                 else:
-                    if self.guard is Both or self.guard is Other:
+                    if self.guard is Guard.Both or self.guard is Guard.Other:
                         # bodyguard kills the killer (ignore bus)
                         newqueue.enqueue(Kill(self.actor, [act.actor]))
-                    if self.guard is Both or self.guard is Self:
+                    if self.guard is Guard.Both or self.guard is Guard.Self:
                         # bodyguard dies also / instead of target
                         newqueue.enqueue(Kill(act.actor, [self.actor]))
                     killfound = True

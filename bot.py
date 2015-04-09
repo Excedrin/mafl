@@ -153,7 +153,7 @@ class Bot():
 
 
     def auth(self, src):
-        #print("auth: %s %s" %(self.owner, src[1:]))
+        print("auth: %s %s" %(self.owner, src[1:]))
         return self.owner == src[1:]
 
     def adduser(self, sock):
@@ -394,7 +394,11 @@ class Bot():
                 else:
                     self.p.modify(sock, readmask)
 
-            events = self.p.poll(1000)
+            try:
+                events = self.p.poll(1000)
+            except InterruptedError as e:
+                events = []
+
             for fd, event in events:
                 if fd in self.fdmap:
                     self.ratelimit()
