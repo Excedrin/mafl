@@ -487,6 +487,30 @@ class Block(Action):
         state.resolved(self)
         return newqueue
 
+class Jail(Action):
+    name = "jail"
+    priority = 15
+    superblock = False
+
+    def resolve(self, state):
+        newqueue = Mqueue()
+
+        bussed = self.gettargets(state)
+
+        for act in state.queue:
+            if act.noblock or not act.actor in bussed:
+                newqueue.enqueue(act)
+            else:
+                newqueue.enqueue(Protect(self.actor, bussed, args={'superprotect':True}))
+
+                # blocked actions don't go into resqueue
+                msg = "You were blocked."
+                newqueue.enqueue(Message(0, [act.actor], {'msg':msg}))
+                self.used = True
+
+        state.resolved(self)
+        return newqueue
+
 class Eavesdrop(Action):
     name = "eavesdrop"
     priority = 95
@@ -719,6 +743,7 @@ class ReverseProtect(Action):
 class Protect(Action):
     name = "protect"
     priority = 50
+    superprotect = False
 
     def resolve(self, state):
         killfound = False
@@ -729,7 +754,8 @@ class Protect(Action):
                 if killfound or (not (isinstance(act, Kill) and target in act.targets)):
                     newqueue.enqueue(act)
                 else:
-                    killfound = True
+                    if not self.superprotect:
+                        killfound = True
 #                    print("kill %s canceled by protect" % act.targets)
                     state.resolved(act)
 

@@ -150,6 +150,13 @@ class Roleblocker(RoleBase):
     def power(n, align):
         return 0.3
 
+class Jailer(RoleBase):
+    factions = [Town, Survivor, Mafia]
+    name = "Jailer"
+    abilities = Townie.abilities + [Ability(Jail)]
+    def power(n, align):
+        return 0.33
+
 class Redirecter(RoleBase):
     factions = [Town, Mafia]
     name = "Redirecter"
@@ -652,6 +659,7 @@ ParanoidStalker = TmplSanity(Stalker, Paranoid())
 StonedStalker = TmplSanity(Stalker, Stoned())
 RandomStalker = TmplSanity(Stalker, Random())
 
+OneShotBulletproof = TmplOneShot(Bulletproof)
 OneShotRedirecter = TmplOneShot(Redirecter)
 OneShotCop = TmplOneShot(Cop)
 OneShotVig = TmplOneShot(Vigilante)

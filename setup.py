@@ -210,6 +210,48 @@ class F11(Setup):
         else:
             return False
 
+class Matrix6(Setup):
+    def getroles(self, n):
+        if n == 9:
+            town = mafl.faction.Town()
+            maf = mafl.faction.Mafia()
+            setupno = self.rng.randint(0,5)
+
+            if setupno == 0:
+                self.roles.append((mafl.role.Mafioso, maf))
+                self.roles.append((mafl.role.Townie, town))
+                self.roles.append((mafl.role.Jailer, town))
+            elif setupno == 1:
+                self.roles.append((mafl.role.Roleblocker, maf))
+                self.roles.append((mafl.role.Cop, town))
+                self.roles.append((mafl.role.Doctor, town))
+            elif setupno == 2:
+                self.roles.append((mafl.role.Mafioso, maf))
+                self.roles.append((mafl.role.OneShotBulletproof, town))
+                self.roles.append((mafl.role.Tracker, town))
+            elif setupno == 3:
+                self.roles.append((mafl.role.Jailer, town))
+                self.roles.append((mafl.role.Roleblocker, maf))
+                self.roles.append((mafl.role.OneShotBulletproof, town))
+            elif setupno == 4:
+                self.roles.append((mafl.role.Cop, town))
+                self.roles.append((mafl.role.Townie, town))
+                self.roles.append((mafl.role.Mafioso, maf))
+            elif setupno == 5:
+                self.roles.append((mafl.role.Tracker, town))
+                self.roles.append((mafl.role.Mafioso, maf))
+                self.roles.append((mafl.role.Doctor, town))
+
+            self.roles.append((mafl.role.Mafioso, maf))
+            self.roles.append((mafl.role.Townie, town))
+            self.roles.append((mafl.role.Townie, town))
+            self.roles.append((mafl.role.Townie, town))
+            self.roles.append((mafl.role.Townie, town))
+            self.roles.append((mafl.role.Townie, town))
+            return True
+        else:
+            return False
+
 class Straight(Setup):
 # straight: Only Townies, sane Cops, Doctors, Vigilantes, Roleblockers, 
 # Mafiosos, and Godfathers appear.
