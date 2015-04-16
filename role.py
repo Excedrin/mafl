@@ -157,6 +157,13 @@ class Jailer(RoleBase):
     def power(n, align):
         return 0.33
 
+class Alien(RoleBase):
+    factions = [Town, Survivor, Mafia]
+    name = "Alien"
+    abilities = Townie.abilities + [Ability(Abduct)]
+    def power(n, align):
+        return 0.43
+
 class Redirecter(RoleBase):
     factions = [Town, Mafia]
     name = "Redirecter"

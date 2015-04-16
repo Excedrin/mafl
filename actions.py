@@ -17,6 +17,7 @@ class ActionBase:
     noblock = False
     nobus = False
     noredir = False
+    nostop = False
 
     def __init__(self, actor, targets, args={}, rename=None):
         self.actor = actor
@@ -57,6 +58,7 @@ class Message(Action):
     priority = 100
 
     notrack = True
+    nostop = True
 
     def resolve(self, state):
         if 'msg' in self.args:
@@ -511,6 +513,30 @@ class Jail(Action):
         state.resolved(self)
         return newqueue
 
+class Abduct(Action):
+    name = "abduct"
+    priority = 13
+    superblock = True
+
+    def resolve(self, state):
+        newqueue = Mqueue()
+
+        bussed = self.gettargets(state)
+
+        for act in state.queue:
+            if act.noblock or not act.actor in bussed:
+                newqueue.enqueue(act)
+            else:
+                newqueue.enqueue(Hide(self.actor, bussed))
+
+                # blocked actions don't go into resqueue
+                msg = "You were blocked."
+                newqueue.enqueue(Message(0, [act.actor], {'msg':msg}))
+                self.used = True
+
+        state.resolved(self)
+        return newqueue
+
 class Eavesdrop(Action):
     name = "eavesdrop"
     priority = 95
@@ -711,7 +737,7 @@ class Hide(Action):
         for target in self.targets:
             # all actions targeting a hidden player fail
             for act in state.queue:
-                if act.targets[0] != target:
+                if act.nostop or act.targets[0] != target:
                     newqueue.enqueue(act)
                     self.used = True
         state.resolved(self)
